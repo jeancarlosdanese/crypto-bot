@@ -239,6 +239,14 @@ func (d *StrategyUseCase) EvaluateEMAFanWithVolume(symbol, interval string, time
 		}
 	}
 
+	slopeMap := calculateEMASlopes(prices, periods)
+
+	for _, slope := range slopeMap {
+		if slope < 0.05 { // mínimo de 0.05% de inclinação
+			return "HOLD"
+		}
+	}
+
 	// Verifica volume crescente comparando último volume com a média dos 10 anteriores
 	lastVolume := d.CandlesWindow[len(d.CandlesWindow)-1].Volume
 	avgVolume := 0.0
@@ -349,6 +357,25 @@ func (d *StrategyUseCase) EvaluateEMAFanWithVolume(symbol, interval string, time
 	}
 
 	return "HOLD"
+}
+
+// calculateEMASlopes calcula a inclinação percentual das EMAs nos últimos dois pontos.
+func calculateEMASlopes(prices []float64, periods []int) map[int]float64 {
+	slopeMap := make(map[int]float64)
+	for _, p := range periods {
+		if len(prices) < p+2 {
+			slopeMap[p] = 0
+			continue
+		}
+		emaNow := indicators.MovingAverage(prices[len(prices)-1:], p)
+		emaPrev := indicators.MovingAverage(prices[len(prices)-2:], p)
+		if emaPrev != 0 {
+			slopeMap[p] = ((emaNow - emaPrev) / emaPrev) * 100 // porcentagem
+		} else {
+			slopeMap[p] = 0
+		}
+	}
+	return slopeMap
 }
 
 // calculateSignal aplica uma lógica simples baseada em MA9 e MA26 para determinar o sinal.

@@ -39,9 +39,9 @@ func main() {
 	windowSize := 240
 
 	pairs := map[string]string{
-		"btcusdt": "5m",
-		"ethusdt": "5m",
-		"solusdt": "5m",
+		"btcusdt": "1m",
+		"ethusdt": "1m",
+		"solusdt": "1m",
 	}
 
 	for symbol, interval := range pairs {
