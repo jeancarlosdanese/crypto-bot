@@ -136,32 +136,52 @@ func (d *StrategyUseCase) EvaluateCrossover(symbol, interval string, timestamp i
 		return "BUY"
 
 	} else if d.PositionQuantity > 0 {
-		// Lógica de saída inteligente
+		// ✅ O bot está comprado — avaliamos se é hora de vender (fechar posição)
+
+		// 🔍 Calcula a EMA de curto prazo (para trailing stop mais responsivo)
 		ema5 := indicators.MovingAverage(prices, 5)
+
+		// 🔍 RSI atual e anterior (para detectar reversão de força)
 		rsiNow := indicators.RSI(prices, 14)
 		rsiPrev := indicators.RSI(prices[:len(prices)-1], 14)
+
+		// 🔍 ATR (usado como base para trailing stop técnico)
 		atr := indicators.ATRFromCandles(d.CandlesWindow)
+
+		// 🎯 Preço mínimo aceitável para continuar na operação
+		// Se cair abaixo disso, é um alerta de reversão (stop técnico)
 		stopLossThreshold := d.LastEntryPrice + atr*1.5
+
+		// 🔎 Verifica se o preço atual cruzou abaixo da EMA5 (sinal de fraqueza imediata)
 		priceBelowEma5 := currentPrice < ema5
+
+		// 🔎 Verifica se o RSI estava acima de 80 e começou a cair (perda de força)
 		rsiReversal := rsiPrev > 80 && rsiNow < rsiPrev
+
+		// 🔎 Verifica se o preço já perdeu demais (queda além do limite de ATR)
 		stopLossHit := currentPrice < stopLossThreshold
 
+		// ✅ Se qualquer um dos critérios for atingido, realiza a venda
 		if priceBelowEma5 || rsiReversal || stopLossHit || basicSignal == "SELL" {
 			d.PositionQuantity = 0
 			d.LastDecision = "SELL"
 
 			logger.Info("💡 Critério de saída atingido", "preco", currentPrice, "timestamp", timestamp)
 
+			// Remove posição aberta do repositório
 			if d.positionRepo != nil {
 				_ = d.positionRepo.Delete(symbol)
 			}
 
+			// Registra o log de decisão de venda
 			d.saveDecisionLog("EvaluateCrossover", "1.0.0", symbol, interval, timestamp, "SELL", indicatorsMap, parameters, context)
 
+			// Calcula o lucro/prejuízo e ROI
 			profit := currentPrice - d.LastEntryPrice
 			duration := (timestamp - d.LastEntryTimestamp) / 1000
 			roi := (profit / d.LastEntryPrice) * 100
 
+			// Registra a execução no MongoDB
 			execLog := entity.ExecutionLog{
 				Symbol:   symbol,
 				Interval: interval,
@@ -178,7 +198,7 @@ func (d *StrategyUseCase) EvaluateCrossover(symbol, interval string, timestamp i
 				ROIPct:   roi,
 				Strategy: entity.StrategyInfo{
 					Name:    "EvaluateCrossover",
-					Version: "1.0.1", // versão incrementada
+					Version: "1.0.1", // versão atualizada
 				},
 			}
 
@@ -186,9 +206,11 @@ func (d *StrategyUseCase) EvaluateCrossover(symbol, interval string, timestamp i
 				_ = d.executionLogRepo.Save(execLog)
 			}
 
+			// Gera o resumo após o trade (salva log .log)
 			go reporter.PrintExecutionSummary(d.executionLogRepo)
 
 			logger.Info("💰 Execução registrada", "profit", profit, "roi_pct", roi, "duration", duration)
+
 			return "SELL"
 		}
 	}

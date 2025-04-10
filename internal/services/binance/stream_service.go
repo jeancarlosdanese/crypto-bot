@@ -38,7 +38,7 @@ func (b *binanceStreamService) Start(symbol, interval string) error {
 	symbol = strings.ToLower(symbol)
 	logger.Info("[StreamService] Iniciando monitoramento", "symbol", symbol, "interval", interval)
 
-	candles, err := b.binanceService.GetHistoricalCandles(strings.ToUpper(symbol), "1m", b.strategy.WindowSize)
+	candles, err := b.binanceService.GetHistoricalCandles(strings.ToUpper(symbol), interval, b.strategy.WindowSize)
 	if err != nil {
 		logger.Error("[StreamService] Erro ao obter candles históricos", err, "symbol", symbol)
 		return err
@@ -92,7 +92,7 @@ func (b *binanceStreamService) Start(symbol, interval string) error {
 					b.strategy.UpdateCandle(current)
 
 					// timestamp do candle finalizado (já vem como int64 da Binance)
-					decision := b.strategy.EvaluateEMAFanWithVolume(symbol, interval, k.EndTime)
+					decision := b.strategy.EvaluateCrossover(symbol, interval, k.EndTime)
 
 					if decision != "HOLD" {
 						logger.Info("[StreamService] Decisão tomada",
