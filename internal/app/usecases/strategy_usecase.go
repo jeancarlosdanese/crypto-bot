@@ -135,53 +135,62 @@ func (d *StrategyUseCase) EvaluateCrossover(symbol, interval string, timestamp i
 		d.saveDecisionLog("EvaluateCrossover", "1.0.0", symbol, interval, timestamp, "BUY", indicatorsMap, parameters, context)
 		return "BUY"
 
-	} else if d.PositionQuantity > 0 && basicSignal == "SELL" {
-		d.PositionQuantity = 0
-		d.LastDecision = "SELL"
+	} else if d.PositionQuantity > 0 {
+		// Lógica de saída inteligente
+		ema5 := indicators.MovingAverage(prices, 5)
+		rsiNow := indicators.RSI(prices, 14)
+		rsiPrev := indicators.RSI(prices[:len(prices)-1], 14)
+		atr := indicators.ATRFromCandles(d.CandlesWindow)
+		stopLossThreshold := d.LastEntryPrice + atr*1.5
+		priceBelowEma5 := currentPrice < ema5
+		rsiReversal := rsiPrev > 80 && rsiNow < rsiPrev
+		stopLossHit := currentPrice < stopLossThreshold
 
-		logger.Info("Posição vendida", "preco", currentPrice, "timestamp", timestamp)
+		if priceBelowEma5 || rsiReversal || stopLossHit || basicSignal == "SELL" {
+			d.PositionQuantity = 0
+			d.LastDecision = "SELL"
 
-		// remove posição em aberto
-		if d.positionRepo != nil {
-			_ = d.positionRepo.Delete(symbol)
+			logger.Info("💡 Critério de saída atingido", "preco", currentPrice, "timestamp", timestamp)
+
+			if d.positionRepo != nil {
+				_ = d.positionRepo.Delete(symbol)
+			}
+
+			d.saveDecisionLog("EvaluateCrossover", "1.0.0", symbol, interval, timestamp, "SELL", indicatorsMap, parameters, context)
+
+			profit := currentPrice - d.LastEntryPrice
+			duration := (timestamp - d.LastEntryTimestamp) / 1000
+			roi := (profit / d.LastEntryPrice) * 100
+
+			execLog := entity.ExecutionLog{
+				Symbol:   symbol,
+				Interval: interval,
+				Entry: entity.TradePoint{
+					Price:     d.LastEntryPrice,
+					Timestamp: d.LastEntryTimestamp,
+				},
+				Exit: entity.TradePoint{
+					Price:     currentPrice,
+					Timestamp: timestamp,
+				},
+				Duration: duration,
+				Profit:   profit,
+				ROIPct:   roi,
+				Strategy: entity.StrategyInfo{
+					Name:    "EvaluateCrossover",
+					Version: "1.0.1", // versão incrementada
+				},
+			}
+
+			if d.executionLogRepo != nil {
+				_ = d.executionLogRepo.Save(execLog)
+			}
+
+			go reporter.PrintExecutionSummary(d.executionLogRepo)
+
+			logger.Info("💰 Execução registrada", "profit", profit, "roi_pct", roi, "duration", duration)
+			return "SELL"
 		}
-
-		d.saveDecisionLog("EvaluateCrossover", "1.0.0", symbol, interval, timestamp, "SELL", indicatorsMap, parameters, context)
-
-		// salvar log de execução
-		profit := currentPrice - d.LastEntryPrice
-		duration := (timestamp - d.LastEntryTimestamp) / 1000
-		roi := (profit / d.LastEntryPrice) * 100
-
-		execLog := entity.ExecutionLog{
-			Symbol:   symbol,
-			Interval: interval,
-			Entry: entity.TradePoint{
-				Price:     d.LastEntryPrice,
-				Timestamp: d.LastEntryTimestamp,
-			},
-			Exit: entity.TradePoint{
-				Price:     currentPrice,
-				Timestamp: timestamp,
-			},
-			Duration: duration,
-			Profit:   profit,
-			ROIPct:   roi,
-			Strategy: entity.StrategyInfo{
-				Name:    "EvaluateCrossover",
-				Version: "1.0.0",
-			},
-		}
-
-		if d.executionLogRepo != nil {
-			_ = d.executionLogRepo.Save(execLog)
-		}
-
-		// Gera o resumo após o trade ser fechado
-		go reporter.PrintExecutionSummary(d.executionLogRepo)
-
-		logger.Info("💰 Execução registrada", "profit", profit, "roi_pct", roi, "duration", duration)
-		return "SELL"
 	}
 
 	return "HOLD"
@@ -242,7 +251,7 @@ func (d *StrategyUseCase) EvaluateEMAFanWithVolume(symbol, interval string, time
 	slopeMap := calculateEMASlopes(prices, periods)
 
 	for _, slope := range slopeMap {
-		if slope < 0.05 { // mínimo de 0.05% de inclinação
+		if slope < 0.08 { // mínimo de 0.05% de inclinação
 			return "HOLD"
 		}
 	}
