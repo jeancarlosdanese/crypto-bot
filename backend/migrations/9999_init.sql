@@ -1,12 +1,15 @@
 -- migrations/init.sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-INSERT INTO "public"."accounts" ("name", "email", "whatsapp", "is_admin", "api_key", "binance_api_key", "binance_api_secret") VALUES
-(
-    'Jean Carlos Danese', 
-    'jean@danese.com.br', 
-    '5549999669869', 
-    't', 
-    NULL, 
+INSERT INTO "public"."accounts" (
+    "id", "name", "email", "whatsapp", "api_key", "binance_api_key", "binance_api_secret"
+)
+VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'Jean Carlos Danese',
+    'jean@danese.com.br',
+    '5549999669869',
+    encode(gen_random_bytes(32), 'hex'), 
     'HB0TGPBzFePBdm7HH40fuYrz54cRZFLYFqkhT0o5fBfB2gFrdzLndsa2oHioE3k6', 
     'sYPkAfh2Trw6zbPzHwUfmvvK2f73qq9bpuZimBoSgT1zq3lcIsg6C8NGaj2hzq7x'
 );

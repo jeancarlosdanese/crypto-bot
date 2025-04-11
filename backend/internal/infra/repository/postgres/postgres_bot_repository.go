@@ -1,3 +1,5 @@
+// internal/infra/repository/postgres/postgres_bot_repository.go
+
 package postgres
 
 import (
@@ -16,7 +18,7 @@ func NewBotRepository(db *pgxpool.Pool) *BotRepository {
 	return &BotRepository{db: db}
 }
 
-func (r *BotRepository) Create(bot *entity.Bot) error {
+func (r *BotRepository) Create(bot *entity.Bot) (*entity.Bot, error) {
 	query := `
         INSERT INTO bots (id, account_id, symbol, interval, strategy_name, autonomous, active, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())
@@ -25,7 +27,10 @@ func (r *BotRepository) Create(bot *entity.Bot) error {
 		bot.ID, bot.AccountID, bot.Symbol, bot.Interval, bot.StrategyName,
 		bot.Autonomous, bot.Active,
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return bot, nil
 }
 
 func (r *BotRepository) GetByID(id uuid.UUID) (*entity.Bot, error) {
@@ -59,4 +64,19 @@ func (r *BotRepository) GetByAccountID(accountID uuid.UUID) ([]entity.Bot, error
 	}
 
 	return bots, nil
+}
+
+func (r *BotRepository) Update(bot *entity.Bot) (*entity.Bot, error) {
+	query := `
+        UPDATE bots
+        SET symbol = $1, interval = $2, strategy_name = $3, autonomous = $4, active = $5, updated_at = now()
+        WHERE id = $6
+    `
+	_, err := r.db.Exec(context.Background(), query,
+		bot.Symbol, bot.Interval, bot.StrategyName, bot.Autonomous, bot.Active, bot.ID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return bot, nil
 }

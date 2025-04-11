@@ -11,6 +11,7 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
 type BinanceStreamService interface {
@@ -178,3 +179,5 @@ func (b *binanceStreamService) StopAll() {
 		b.Stop(symbol)
 	}
 }
+
+var _ services.StreamService = (*binanceStreamService)(nil)

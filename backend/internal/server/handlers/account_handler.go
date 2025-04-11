@@ -1,0 +1,231 @@
+// internal/server/handlers/account_handler.go
+
+package handlers
+
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"strings"
+
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/dto"
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
+	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
+	middleware "github.com/jeancarlosdanese/crypto-bot/internal/server/middlewares"
+	"github.com/jeancarlosdanese/crypto-bot/internal/utils"
+)
+
+type AccountHandle interface {
+	CreateAccountHandler() http.HandlerFunc
+	GetAllAccountsHandler() http.HandlerFunc
+	GetAccountHandler() http.HandlerFunc
+	UpdateAccountHandler() http.HandlerFunc
+	DeleteAccountHandler() http.HandlerFunc
+}
+
+type accountHandle struct {
+	log         *slog.Logger
+	accountRepo repository.AccountRepository
+}
+
+func NewAccountHandle(accountRepo repository.AccountRepository) AccountHandle {
+	return &accountHandle{
+		log:         logger.GetLogger(),
+		accountRepo: accountRepo,
+	}
+}
+
+// CreateAccountHandler cria uma nova conta
+func (h *accountHandle) CreateAccountHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var accountDTO dto.AccountCreateDTO
+
+		h.log.Debug("Recebendo requisição para criar conta", "method", r.Method, "route", r.URL.Path)
+
+		if err := json.NewDecoder(r.Body).Decode(&accountDTO); err != nil {
+			h.log.Warn("Erro ao decodificar JSON", "error", err)
+			utils.SendError(w, http.StatusBadRequest, "Erro ao processar requisição")
+			return
+		}
+		defer r.Body.Close()
+
+		h.log.Debug("Payload recebido", "name", accountDTO.Name, "email", accountDTO.Email)
+
+		if err := accountDTO.Validate(); err != nil {
+			h.log.Warn("Erro de validação", "error", err.Error())
+			utils.SendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		account := &entity.Account{
+			Name:     accountDTO.Name,
+			Email:    accountDTO.Email,
+			WhatsApp: accountDTO.WhatsApp,
+		}
+
+		createdAccount, err := h.accountRepo.Create(r.Context(), account)
+		if err != nil {
+			h.log.Error("Erro ao criar conta", "error", err)
+			if strings.Contains(err.Error(), "duplicate key value") {
+				utils.SendError(w, http.StatusConflict, "E-mail ou WhatsApp já cadastrado")
+			} else {
+				utils.SendError(w, http.StatusInternalServerError, "Erro ao criar conta")
+			}
+			return
+		}
+
+		response := dto.NewAccountResponseDTO(createdAccount)
+
+		h.log.Info("Conta criada com sucesso", "account_id", createdAccount.ID.String(), "email", createdAccount.Email)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// GetAllAccountsHandler retorna todas as contas cadastradas
+func (h *accountHandle) GetAllAccountsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authAccount, ok := middleware.GetAuthenticatedAccount(r.Context())
+		if !ok {
+			h.log.Error("Conta não encontrada no contexto")
+			utils.SendError(w, http.StatusInternalServerError, "Conta não encontrada no contexto")
+			return
+		}
+
+		if !authAccount.IsAdmin() {
+			h.log.Warn("Apenas administradores podem buscar todas as contas")
+			utils.SendError(w, http.StatusForbidden, "Apenas administradores podem buscar todas as contas")
+			return
+		}
+
+		accounts, err := h.accountRepo.GetAll(r.Context())
+		if err != nil {
+			h.log.Error("Erro ao buscar contas", "error", err)
+			utils.SendError(w, http.StatusInternalServerError, "Erro ao buscar contas")
+			return
+		}
+
+		h.log.Debug("Contas recuperadas", "count", len(accounts))
+
+		var response []dto.AccountResponseDTO
+		for _, acc := range accounts {
+			response = append(response, dto.NewAccountResponseDTO(acc))
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// GetAccountHandler retorna uma conta específica
+func (h *accountHandle) GetAccountHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authAccount, ok := middleware.GetAuthenticatedAccount(r.Context())
+		if !ok {
+			h.log.Error("Conta não encontrada no contexto")
+			utils.SendError(w, http.StatusInternalServerError, "Conta não encontrada no contexto")
+			return
+		}
+
+		accountID := utils.GetUUIDFromRequestPath(r, w, "id")
+
+		// Checar se é admin ou dono
+		if !middleware.IsAdminOrOwner(authAccount, accountID) {
+			h.log.Warn("Apenas administradores podem buscar outras contas")
+			utils.SendError(w, http.StatusForbidden, "Apenas administradores podem buscar outras contas")
+			return
+		}
+
+		account, err := h.accountRepo.GetByID(r.Context(), accountID)
+		if err != nil {
+			h.log.Warn("Conta não encontrada", "account_id", accountID.String())
+			utils.SendError(w, http.StatusNotFound, "Conta não encontrada")
+			return
+		}
+
+		h.log.Debug("Conta encontrada", "account_id", accountID.String())
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(dto.NewAccountResponseDTO(account))
+	}
+}
+
+// UpdateAccountHandler atualiza uma conta
+func (h *accountHandle) UpdateAccountHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authAccount, ok := middleware.GetAuthenticatedAccount(r.Context())
+		if !ok {
+			h.log.Error("Conta não encontrada no contexto")
+			utils.SendError(w, http.StatusInternalServerError, "Conta não encontrada no contexto")
+			return
+		}
+
+		// ID da conta a ser atualizada
+		accountID := utils.GetUUIDFromRequestPath(r, w, "id")
+
+		var updateDTO dto.AccountUpdateDTO
+		if err := json.NewDecoder(r.Body).Decode(&updateDTO); err != nil {
+			h.log.Warn("Erro ao decodificar JSON", "error", err)
+			utils.SendError(w, http.StatusBadRequest, "Erro ao processar requisição")
+			return
+		}
+		defer r.Body.Close()
+
+		// Checar se é admin ou dono
+		if !middleware.IsAdminOrOwner(authAccount, accountID) {
+			h.log.Warn("Apenas administradores podem buscar outras contas")
+			utils.SendError(w, http.StatusForbidden, "Apenas administradores podem buscar outras contas")
+			return
+		}
+
+		if err := updateDTO.Validate(); err != nil {
+			h.log.Warn("Erro de validação", "error", err.Error())
+			utils.SendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		updateData, _ := json.Marshal(updateDTO)
+		updatedAccount, err := h.accountRepo.UpdateByID(r.Context(), accountID, updateData)
+		if err != nil {
+			h.log.Error("Erro ao atualizar conta", "error", err)
+			utils.SendError(w, http.StatusInternalServerError, "Erro ao atualizar conta")
+			return
+		}
+
+		h.log.Info("Conta atualizada com sucesso", "account_id", updatedAccount.ID.String())
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(dto.NewAccountResponseDTO(updatedAccount))
+	}
+}
+
+// DeleteAccountHandler remove uma conta
+func (h *accountHandle) DeleteAccountHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authAccount, ok := middleware.GetAuthenticatedAccount(r.Context())
+		if !ok {
+			h.log.Error("Conta não encontrada no contexto")
+			utils.SendError(w, http.StatusInternalServerError, "Conta não encontrada no contexto")
+			return
+		}
+
+		// ID da conta a ser atualizada
+		accountID := utils.GetUUIDFromRequestPath(r, w, "id")
+
+		if !authAccount.IsAdmin() {
+			h.log.Warn("Apenas administradores podem deletar contas")
+			utils.SendError(w, http.StatusForbidden, "Apenas administradores podem deletar contas")
+			return
+		}
+
+		err := h.accountRepo.DeleteByID(r.Context(), accountID)
+		if err != nil {
+			h.log.Error("Erro ao deletar conta", "error", err)
+			utils.SendError(w, http.StatusInternalServerError, "Erro ao deletar conta")
+			return
+		}
+
+		h.log.Info("Conta deletada", "account_id", accountID.String())
+		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
+	}
+}

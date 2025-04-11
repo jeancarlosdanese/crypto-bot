@@ -3,16 +3,26 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	binanceApi "github.com/adshao/go-binance/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
-	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/config"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/database"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/repository/postgres"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
+	"github.com/jeancarlosdanese/crypto-bot/internal/server/middlewares"
+	"github.com/jeancarlosdanese/crypto-bot/internal/server/routes"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 	"github.com/jeancarlosdanese/crypto-bot/internal/services/binance"
 )
 
@@ -35,45 +45,75 @@ func main() {
 	positionRepo := postgres.NewPositionRepository(pool)
 	executionRepo := postgres.NewExecutionLogRepository(pool)
 	decisionRepo := postgres.NewDecisionLogRepository(pool)
+	otpRepo := postgres.NewAccountOTPRepository(pool)
 
 	// Exchange Service (Binance)
 	binanceClient := binanceApi.NewClient(os.Getenv("BINANCE_API_KEY"), os.Getenv("BINANCE_API_SECRET"))
 	exchangeService := binance.NewBinanceService(binanceClient)
 
-	// Recupera todos os bots ativos
-	// (Exemplo estático de um accountID — ideal seria iterar contas ou rodar por user autenticado)
-	account, err := accountRepo.GetByEmail("jean@danese.com.br")
-	if err != nil {
-		log.Fatalf("Erro ao carregar conta: %v", err)
+	// 🔁 Start bots em paralelo
+	streamFactory := func(strategy *usecases.StrategyUseCase) services.StreamService {
+		return binance.NewBinanceStreamService(strategy, exchangeService)
 	}
 
-	bots, err := botRepo.GetByAccountID(account.ID)
-	if err != nil {
-		log.Fatalf("Erro ao carregar bots: %v", err)
+	go startBots(
+		context.Background(),
+		accountRepo,
+		botRepo,
+		positionRepo,
+		exchangeService,
+		streamFactory,
+		decisionRepo,
+		executionRepo,
+	)
+
+	// 🌐 Iniciar servidor HTTP com rotas REST
+	go startHTTPServer(accountRepo, botRepo, otpRepo, pool)
+
+	// 🛑 Aguardar sinal do SO para desligar
+	waitForShutdown()
+}
+
+func startHTTPServer(
+	accountRepo repository.AccountRepository,
+	botRepo repository.BotRepository,
+	otpRepo repository.AccountOTPRepository,
+	db *pgxpool.Pool,
+) {
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = "8080"
 	}
 
-	for _, bot := range bots {
-		if !bot.Active {
-			continue
-		}
+	mux := http.NewServeMux()
+	router := middlewares.CORSMiddleware(
+		routes.NewRouter(
+			otpRepo,
+			accountRepo,
+			botRepo,
+		),
+	)
 
-		go func(botInfo entity.Bot) {
-			// Inicializa estratégia com repositórios injetados
-			strategy := usecases.NewStrategyUseCase(*account, bot, exchangeService, decisionRepo, executionRepo, positionRepo, 240)
+	mux.Handle("/", router)
 
-			// Restaura posição aberta (se houver)
-			if pos, _ := positionRepo.Get(botInfo.ID); pos != nil {
-				strategy.PositionQuantity = 1
-				strategy.LastEntryPrice = pos.EntryPrice
-				strategy.LastEntryTimestamp = pos.Timestamp
-				log.Printf("🔁 [%s] Posição reaberta a %.2f", botInfo.Symbol, pos.EntryPrice)
-			}
-
-			// Inicia o monitoramento
-			stream := binance.NewBinanceStreamService(strategy, exchangeService)
-			stream.Start(botInfo.Symbol, botInfo.Interval)
-		}(bot)
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", port),
+		Handler: mux,
 	}
 
-	select {} // mantém o programa vivo
+	log.Printf("🌐 Servidor HTTP iniciado em http://localhost:%s", port)
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("❌ Erro no servidor HTTP: %v", err)
+	}
+}
+
+func waitForShutdown() {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	log.Println("⚠️ Encerrando servidor e bots...")
+	time.Sleep(2 * time.Second)
+	log.Println("✅ Encerrado com sucesso.")
 }

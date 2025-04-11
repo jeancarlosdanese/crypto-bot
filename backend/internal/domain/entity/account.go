@@ -9,8 +9,13 @@ type Account struct {
 	Name             string    `json:"name"`
 	Email            string    `json:"email"`
 	WhatsApp         string    `json:"whatsapp"`
-	IsAdmin          bool      `json:"is_admin"`
 	APIKey           *string   `json:"api_key"`
 	BinanceAPIKey    *string   `json:"binance_api_key"`
 	BinanceAPISecret *string   `json:"binance_api_secret"`
+}
+
+// IsAdmin verifica se a conta é admin baseada no ID fixo
+func (a *Account) IsAdmin() bool {
+	adminID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	return a.ID == adminID
 }

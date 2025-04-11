@@ -29,6 +29,8 @@ services:
       POSTGRES_DATABASE: ${POSTGRES_DATABASE}
       BINANCE_API_KEY: ${BINANCE_API_KEY}
       BINANCE_API_SECRET: ${BINANCE_API_SECRET}
+    ports:
+      - "8080:8080"
     env_file:
       - ./backend/.env
     command: ["/app/crypto-bot"]

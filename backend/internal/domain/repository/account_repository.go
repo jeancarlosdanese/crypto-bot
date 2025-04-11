@@ -2,11 +2,18 @@
 
 package repository
 
-import "github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+import (
+	"context"
 
+	"github.com/google/uuid"
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+)
+
+// AccountRepository define a interface para qualquer banco de dados
 type AccountRepository interface {
-	GetByEmail(email string) (*entity.Account, error)
-	GetByWhatsApp(whatsapp string) (*entity.Account, error)
-	GetByAPIKey(apiKey string) (*entity.Account, error)
-	Create(account *entity.Account) error
+	Create(ctx context.Context, account *entity.Account) (*entity.Account, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*entity.Account, error)
+	GetAll(ctx context.Context) ([]*entity.Account, error)
+	UpdateByID(ctx context.Context, id uuid.UUID, jsonData []byte) (*entity.Account, error)
+	DeleteByID(ctx context.Context, id uuid.UUID) error
 }
