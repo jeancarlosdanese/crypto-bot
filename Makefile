@@ -1,29 +1,24 @@
-.PHONY: run test build up down clean logs restart
+.PHONY: backend-up backend-down backend-logs backend-restart backend-build frontend-dev frontend-build
 
-run:
-	go run ./cmd/api/main.go
+# 📦 Backend (API Go)
+backend-up:
+	cd backend && make up
 
-test:
-	go test ./... -v
+backend-down:
+	cd backend && make down
 
-build:
-	CGO_ENABLED=0 GOOS=linux go build -o build/crypto-bot ./cmd/api
+backend-logs:
+	cd backend && make logs
 
-up:
-	docker compose up -d --build
+backend-restart:
+	cd backend && make restart
 
-down:
-	docker compose down
+backend-build:
+	cd backend && make build
 
-restart:
-	docker compose down && docker compose up -d --build
+# 🌐 Frontend (Next.js)
+frontend-dev:
+	cd frontend && npm run dev
 
-logs:
-	docker compose logs -f --tail=100
-
-clean:
-	rm -rf build coverage.out
-
-cover:
-	go test -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out
+frontend-build:
+	cd frontend && npm run build

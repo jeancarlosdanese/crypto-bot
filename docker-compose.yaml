@@ -10,13 +10,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DATABASE}
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
+      - ./backend/migrations:/docker-entrypoint-initdb.d
     env_file:
-      - .env
+      - ./backend/.env
 
   bot:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: crypto-bot
     depends_on:
@@ -30,7 +30,7 @@ services:
       BINANCE_API_KEY: ${BINANCE_API_KEY}
       BINANCE_API_SECRET: ${BINANCE_API_SECRET}
     env_file:
-      - .env
+      - ./backend/.env
     command: ["/app/crypto-bot"]
     restart: unless-stopped
 
