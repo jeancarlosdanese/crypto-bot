@@ -2,11 +2,14 @@
 
 package repository
 
-import "github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+import (
+	"github.com/google/uuid"
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+)
 
 type PositionRepository interface {
 	Save(position entity.OpenPosition) error
-	Delete(symbol string) error
-	Get(symbol string) (*entity.OpenPosition, error)
+	Delete(botID uuid.UUID) error
+	Get(botID uuid.UUID) (*entity.OpenPosition, error)
 	GetAll() ([]entity.OpenPosition, error)
 }

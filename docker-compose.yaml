@@ -1,32 +1,38 @@
 services:
-  mongo:
-    image: mongo:8.0.6
-    container_name: mongo
+  postgres:
+    image: postgres:15
+    container_name: postgres
     ports:
-      - "27017:27017"
+      - "5432:5432"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
     volumes:
-      - mongo_data:/data/db
+      - pg_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
     env_file:
       - .env
 
-  # bot:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: crypto-bot
-  #   depends_on:
-  #     - mongo
-  #   environment:
-  #     MONGO_USER: ${MONGO_USER}
-  #     MONGO_PASSWORD: ${MONGO_PASSWORD}
-  #     MONGO_HOST: mongo:27017
-  #     MONGO_DATABASE: ${MONGO_DATABASE}
-  #     # Outros envs como BINANCE_API_KEY etc.
-  #   env_file:
-  #     - .env
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crypto-bot
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      BINANCE_API_KEY: ${BINANCE_API_KEY}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET}
+    env_file:
+      - .env
+    command: ["/app/crypto-bot"]
+    restart: unless-stopped
 
 volumes:
-  mongo_data:
+  pg_data:

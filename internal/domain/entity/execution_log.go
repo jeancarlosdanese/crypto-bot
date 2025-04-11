@@ -2,21 +2,26 @@
 
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type ExecutionLog struct {
-	Symbol    string       `bson:"symbol"`
-	Interval  string       `bson:"interval"`
-	Entry     TradePoint   `bson:"entry"`
-	Exit      TradePoint   `bson:"exit"`
-	Duration  int64        `bson:"duration_seconds"` // segundos entre entrada e saída
-	Profit    float64      `bson:"profit"`           // lucro absoluto
-	ROIPct    float64      `bson:"roi_pct"`          // retorno percentual
-	Strategy  StrategyInfo `bson:"strategy"`
-	CreatedAt time.Time    `bson:"created_at"`
+	BotID     uuid.UUID    `json:"bot_id"`
+	Symbol    string       `json:"symbol"`
+	Interval  string       `json:"interval"`
+	Entry     TradePoint   `json:"entry"`
+	Exit      TradePoint   `json:"exit"`
+	Duration  int64        `json:"duration"` // segundos entre entrada e saída
+	Profit    float64      `json:"profit"`
+	ROIPct    float64      `json:"roi_pct"`
+	Strategy  StrategyInfo `json:"strategy"`
+	CreatedAt time.Time    `json:"created_at"`
 }
 
 type TradePoint struct {
-	Price     float64 `bson:"price"`
-	Timestamp int64   `bson:"timestamp"`
+	Price     float64 `json:"price"`
+	Timestamp int64   `json:"timestamp"`
 }

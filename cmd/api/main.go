@@ -6,60 +6,74 @@ import (
 	"log"
 	"os"
 
-	"github.com/adshao/go-binance/v2"
+	binanceApi "github.com/adshao/go-binance/v2"
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
+	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/config"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/database"
-	"github.com/jeancarlosdanese/crypto-bot/internal/infra/mongo"
+	"github.com/jeancarlosdanese/crypto-bot/internal/infra/repository/postgres"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
-	binanceService "github.com/jeancarlosdanese/crypto-bot/internal/services/binance"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services/binance"
 )
 
 func main() {
 	logger.InitLogger()
-	log.Println("Iniciando projeto...")
+	log.Println("🚀 Iniciando Robe de Crypto...")
 
 	config.LoadEnv(".env")
 
-	mongoClient, err := database.NewMongoClient()
+	// PostgreSQL
+	pool, err := database.NewPostgresPool()
 	if err != nil {
-		log.Fatalf("Erro ao conectar no MongoDB: %v", err)
+		log.Fatalf("Erro ao conectar no PostgreSQL: %v", err)
 	}
-	defer mongoClient.Disconnect(nil)
+	defer pool.Close()
 
-	db := mongoClient.Database(os.Getenv("MONGO_DATABASE"))
+	// Repositórios
+	accountRepo := postgres.NewAccountRepository(pool)
+	botRepo := postgres.NewBotRepository(pool)
+	positionRepo := postgres.NewPositionRepository(pool)
+	executionRepo := postgres.NewExecutionLogRepository(pool)
+	decisionRepo := postgres.NewDecisionLogRepository(pool)
 
-	decisionLogRepo := mongo.NewDecisionLogRepository(db)
-	executionLogRepo := mongo.NewExecutionLogRepository(db)
-	positionRepo := mongo.NewPositionRepository(db)
+	// Exchange Service (Binance)
+	binanceClient := binanceApi.NewClient(os.Getenv("BINANCE_API_KEY"), os.Getenv("BINANCE_API_SECRET"))
+	exchangeService := binance.NewBinanceService(binanceClient)
 
-	binanceClient := binance.NewClient(os.Getenv("BINANCE_API_KEY"), os.Getenv("BINANCE_API_SECRET"))
-	exchange := binanceService.NewBinanceService(binanceClient)
-
-	windowSize := 240
-
-	pairs := map[string]string{
-		"btcusdt": "1m",
-		"ethusdt": "1m",
-		"solusdt": "1m",
+	// Recupera todos os bots ativos
+	// (Exemplo estático de um accountID — ideal seria iterar contas ou rodar por user autenticado)
+	account, err := accountRepo.GetByEmail("jean@danese.com.br")
+	if err != nil {
+		log.Fatalf("Erro ao carregar conta: %v", err)
 	}
 
-	for symbol, interval := range pairs {
-		go func(sym, intv string) {
-			strategy := usecases.NewStrategyUseCase(exchange, decisionLogRepo, executionLogRepo, positionRepo, windowSize)
+	bots, err := botRepo.GetByAccountID(account.ID)
+	if err != nil {
+		log.Fatalf("Erro ao carregar bots: %v", err)
+	}
 
-			// Tenta restaurar posição salva (resiliência)
-			if pos, _ := positionRepo.Get(sym); pos != nil {
+	for _, bot := range bots {
+		if !bot.Active {
+			continue
+		}
+
+		go func(botInfo entity.Bot) {
+			// Inicializa estratégia com repositórios injetados
+			strategy := usecases.NewStrategyUseCase(*account, bot, exchangeService, decisionRepo, executionRepo, positionRepo, 240)
+
+			// Restaura posição aberta (se houver)
+			if pos, _ := positionRepo.Get(botInfo.ID); pos != nil {
+				strategy.PositionQuantity = 1
 				strategy.LastEntryPrice = pos.EntryPrice
 				strategy.LastEntryTimestamp = pos.Timestamp
-				strategy.PositionQuantity = 1
-				log.Printf("🔁 Posição reaberta: %s @ %.2f", sym, pos.EntryPrice)
+				log.Printf("🔁 [%s] Posição reaberta a %.2f", botInfo.Symbol, pos.EntryPrice)
 			}
 
-			stream := binanceService.NewBinanceStreamService(strategy, exchange)
-			stream.Start(sym, intv)
-		}(symbol, interval)
+			// Inicia o monitoramento
+			stream := binance.NewBinanceStreamService(strategy, exchangeService)
+			stream.Start(botInfo.Symbol, botInfo.Interval)
+		}(bot)
 	}
 
-	select {} // mantém os goroutines vivos
+	select {} // mantém o programa vivo
 }

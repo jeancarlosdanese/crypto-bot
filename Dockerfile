@@ -1,23 +1,25 @@
-# Etapa 1: build da aplicação
-FROM golang:1.22 AS builder
+# Etapa 1: Build da aplicação
+FROM golang:1.23 AS builder
 
 WORKDIR /app
 
-# Copia os arquivos
+COPY .env ./
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
 COPY . .
 
-# Compila o binário
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/api
+RUN CGO_ENABLED=0 GOOS=linux go build -o crypto-bot ./cmd/api
 
-# Etapa 2: imagem final enxuta
-FROM gcr.io/distroless/static:nonroot
+# Etapa 2: Imagem enxuta, mas com shell
+FROM alpine:3.19
 
 WORKDIR /app
 
-COPY --from=builder /app/app .
+# Instala bash e outras ferramentas úteis (opcional, mas prático)
+RUN apk add --no-cache bash
 
-CMD ["/app/app"]
+COPY --from=builder /app/crypto-bot .
+
+CMD ["/app/crypto-bot"]

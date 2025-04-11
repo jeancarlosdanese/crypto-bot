@@ -48,3 +48,5 @@ notificacao.exe
 /build
 /build/
 /build/*
+
+/migrations/9999_init.sql

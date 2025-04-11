@@ -2,18 +2,20 @@
 
 package entity
 
-import "time"
+import (
+	"time"
 
-// DecisionLog representa uma decisão tomada pela estratégia
+	"github.com/google/uuid"
+)
+
 type DecisionLog struct {
-	Symbol        string             `bson:"symbol"`
-	Interval      string             `bson:"interval"`
-	Timestamp     int64              `bson:"timestamp"` // timestamp do candle fechado
-	Decision      string             `bson:"decision"`
-	PositionOpen  bool               `bson:"position_active"`
-	CandlesWindow []Candle           `bson:"candles_window"`
-	Indicators    map[string]float64 `bson:"indicators"`
-	Strategy      StrategyInfo       `bson:"strategy"`
-	Context       map[string]any     `bson:"context"`
-	CreatedAt     time.Time          `bson:"created_at"`
+	BotID      uuid.UUID          `json:"bot_id"`
+	Symbol     string             `json:"symbol"`
+	Interval   string             `json:"interval"`
+	Timestamp  int64              `json:"timestamp"`
+	Decision   string             `json:"decision"`
+	Indicators map[string]float64 `json:"indicators"`
+	Context    map[string]any     `json:"context"`
+	Strategy   StrategyInfo       `json:"strategy"`
+	CreatedAt  time.Time          `json:"created_at"`
 }
