@@ -57,6 +57,7 @@ export default function TradeChart({ botID, token }: Props) {
         borderColor: isDark ? "#666" : "#ccc",
         timeVisible: true,
         secondsVisible: true,
+        rightOffset: 20, // 🔥 mostra 5 candles de margem à direita
       },
     });
 
@@ -75,6 +76,8 @@ export default function TradeChart({ botID, token }: Props) {
         },
         timeScale: {
           borderColor: isDark ? "#666" : "#ccc",
+          timeVisible: true,
+          secondsVisible: true,
         },
       });
 
@@ -84,7 +87,7 @@ export default function TradeChart({ botID, token }: Props) {
       });
 
       ma26SeriesRef.current?.applyOptions({
-        color: isDark ? "#60a5fa" : "#4682B4", // Azul claro no dark, steelblue no light
+        color: isDark ? "#9370DB" : "#4682B4", // Azul claro no dark, steelblue no light
       });
     });
 
@@ -103,7 +106,7 @@ export default function TradeChart({ botID, token }: Props) {
 
     const candleSeries = chart.addCandlestickSeries();
     const ma9Series = chart.addLineSeries({ color: "orange", lineWidth: 2 });
-    const ma26Series = chart.addLineSeries({ color: "#4682B4", lineWidth: 1 }); // SteelBlue
+    const ma26Series = chart.addLineSeries({ color: "#9370DB", lineWidth: 2 }); // SteelBlue
 
     chartApiRef.current = chart;
     candleSeriesRef.current = candleSeries;
@@ -145,8 +148,16 @@ export default function TradeChart({ botID, token }: Props) {
         <div><strong>High:</strong> ${candle.high}</div>
         <div><strong>Low:</strong> ${candle.low}</div>
         <div><strong>Close:</strong> ${candle.close}</div>
-        ${ma9 ? `<div style="color:orange;"><strong>MA9:</strong> ${ma9.value.toFixed(2)}</div>` : ""}
-        ${ma26 ? `<div style="color:blue;"><strong>MA26:</strong> ${ma26.value.toFixed(2)}</div>` : ""}
+        ${
+          ma9
+            ? `<div style="color:${ma9SeriesRef.current?.options().color};"><strong>MA9:</strong> ${ma9.value.toFixed(2)}</div>`
+            : ""
+        }
+        ${
+          ma26
+            ? `<div style="color:${ma26SeriesRef.current?.options().color};"><strong>MA26:</strong> ${ma26.value.toFixed(2)}</div>`
+            : ""
+        }
       `;
 
       const x = param.point?.x ?? 0;
@@ -187,15 +198,15 @@ export default function TradeChart({ botID, token }: Props) {
     const socket = new WebSocket(`ws://localhost:8080/ws/${botID}?token=${token}`);
 
     socket.onopen = () => {
-      console.log("✅ WebSocket connection established");
+      console.log("✅ WebSocket aberto", { botID });
     };
 
     socket.onclose = () => {
-      console.log("❌ WebSocket connection closed");
+      console.log("⚠️ WebSocket connection closed");
     };
 
     socket.onerror = (error) => {
-      console.error("⚠️ WebSocket error:", error);
+      console.error("❌ WebSocket erro", error);
     };
 
     socket.onmessage = (event) => {
@@ -203,6 +214,7 @@ export default function TradeChart({ botID, token }: Props) {
       if (msg.type === "candle") {
         const candle = msg.data;
         candleSeries.update(candle);
+        chart.timeScale().scrollToRealTime(); // 🔄 rola para o final
         if (candle.ma9 && candle.ma26) {
           ma9SeriesRef.current?.update({ time: candle.time, value: candle.ma9 });
           ma26SeriesRef.current?.update({ time: candle.time, value: candle.ma26 });

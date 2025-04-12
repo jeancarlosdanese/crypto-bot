@@ -6,8 +6,8 @@ INSERT INTO "public"."accounts" (
 )
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    'José da Silva',
-    'email@email.com',
+    'João da Silva',
+    'email@domain.com',
     '9999999999',
     encode(gen_random_bytes(32), 'hex'), 
     'SUA_API_KEY', 
@@ -23,7 +23,7 @@ DECLARE
 BEGIN
     -- Insere os bots
     FOR symbol IN 
-        SELECT unnest(ARRAY['btcusdt', 'bnbusdt', 'xrpusdt', 'ethusdt', 'solusdt', 'fdusdusdt']) AS symbol
+        SELECT unnest(ARRAY['BTC/USDT', 'BNB/USDT', 'XRP/USDT', 'ETH/USDT', 'SOL/USDT', 'FDUSD/USDT']) AS symbol
     LOOP
         INSERT INTO bots (id, account_id, symbol, interval, strategy_name, autonomous, active)
         VALUES (

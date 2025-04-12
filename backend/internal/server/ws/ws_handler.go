@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 // Recebe botID via URL e token via query string
 func SecureWebSocketHandler(botRepo repository.BotRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger.Debug("Conectando ao WebSocket:", r.URL.Path)
+		logger.Debug("Conectando ao WebSocket...", "url", r.URL.Path)
 
 		// Extrair botID da URL: /ws/{botID}
 		botIDStr := r.PathValue("botID")
@@ -65,7 +65,8 @@ func SecureWebSocketHandler(botRepo repository.BotRepository) http.HandlerFunc {
 			logger.Error("Erro ao fazer upgrade para WebSocket:", err)
 			return
 		}
-		logger.Debug("WebSocket conectado com sucesso:", bot.ID.String())
+
+		logger.Debug("🧩 Cliente conectado via WebSocket", "bot_id", botID.String(), "account_id", accountID)
 
 		AddClient(bot.ID.String(), conn)
 	}
