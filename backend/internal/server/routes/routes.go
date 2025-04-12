@@ -23,6 +23,8 @@ func NewRouter(
 	// 🔥 Registrar rotas principais
 	RegisterAuthRoutes(mux, authMiddleware, otpRepo)
 	RegisterAccountRoutes(mux, authMiddleware, accountRepo)
+	RegisterBotRoutes(mux, authMiddleware, botRepo)
+	RegisterWebSocketRoutes(mux, botRepo)
 
 	// 🔥 Rota de Health Check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

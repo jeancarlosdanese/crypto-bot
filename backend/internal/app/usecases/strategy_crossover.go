@@ -8,6 +8,7 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
 	reporter "github.com/jeancarlosdanese/crypto-bot/internal/report"
+	serverws "github.com/jeancarlosdanese/crypto-bot/internal/server/ws"
 )
 
 func (s *StrategyUseCase) EvaluateCrossover(timestamp int64) string {
@@ -115,6 +116,16 @@ func (s *StrategyUseCase) EvaluateCrossover(timestamp int64) string {
 		// 📝 Log de decisão
 		s.saveDecisionLog(strategyName, strategyVersion, "BUY", timestamp, indicatorsMap, params, ctx)
 
+		// 💬 Enviar evento de decisão para o WebSocket
+		serverws.Publish(s.Bot.ID.String(), serverws.Event{
+			Type: "decision",
+			Data: map[string]interface{}{
+				"time":     timestamp / 1000,
+				"price":    currentPrice,
+				"decision": "BUY",
+			},
+		})
+
 		return "BUY"
 	}
 
@@ -134,7 +145,8 @@ func (s *StrategyUseCase) EvaluateCrossover(timestamp int64) string {
 		priceBelowTrailing := currentPrice < emaTrailing
 		rsiReversal := rsiPrev > rsiExitThreshold && rsi < rsiPrev
 
-		if stopLossHit || priceBelowTrailing || rsiReversal || basicSignal == "SELL" {
+		// if stopLossHit || priceBelowTrailing || rsiReversal || basicSignal == "SELL" {
+		if basicSignal == "NO" {
 			reason := ""
 			switch {
 			case stopLossHit:
@@ -178,6 +190,17 @@ func (s *StrategyUseCase) EvaluateCrossover(timestamp int64) string {
 			if s.ExecutionLogRepo != nil {
 				_ = s.ExecutionLogRepo.Save(exec)
 			}
+
+			// 💬 Enviar evento de decisão para o WebSocket
+			serverws.Publish(s.Bot.ID.String(), serverws.Event{
+				Type: "decision",
+				Data: map[string]interface{}{
+					"time":     timestamp / 1000,
+					"price":    currentPrice,
+					"decision": "SELL",
+				},
+			})
+
 			go reporter.PrintExecutionSummary(s.ExecutionLogRepo)
 			return "SELL"
 		}

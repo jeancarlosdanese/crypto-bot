@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
 )
 
 type BotRepository struct {
@@ -47,6 +48,8 @@ func (r *BotRepository) GetByID(id uuid.UUID) (*entity.Bot, error) {
 }
 
 func (r *BotRepository) GetByAccountID(accountID uuid.UUID) ([]entity.Bot, error) {
+	logger.Debug("Buscando bots para o account_id: ", accountID)
+
 	query := `SELECT id, account_id, symbol, interval, strategy_name, autonomous, active FROM bots WHERE account_id = $1`
 	rows, err := r.db.Query(context.Background(), query, accountID)
 	if err != nil {
@@ -62,6 +65,8 @@ func (r *BotRepository) GetByAccountID(accountID uuid.UUID) ([]entity.Bot, error
 		}
 		bots = append(bots, b)
 	}
+
+	logger.Debug("Total de bots encontrados: ", len(bots))
 
 	return bots, nil
 }

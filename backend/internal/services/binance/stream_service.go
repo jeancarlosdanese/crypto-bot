@@ -11,6 +11,7 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
+	serverws "github.com/jeancarlosdanese/crypto-bot/internal/server/ws"
 	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
@@ -91,6 +92,18 @@ func (b *binanceStreamService) Start(symbol, interval string) error {
 
 				if k.IsFinal {
 					b.strategy.UpdateCandle(current)
+
+					// 🔥 Publicar candle no WebSocket
+					serverws.Publish(b.strategy.Bot.ID.String(), serverws.Event{
+						Type: "candle",
+						Data: map[string]interface{}{
+							"time":  k.EndTime / 1000, // frontend espera timestamp em segundos
+							"open":  current.Open,
+							"high":  current.High,
+							"low":   current.Low,
+							"close": current.Close,
+						},
+					})
 
 					// timestamp do candle finalizado (já vem como int64 da Binance)
 					decision := b.strategy.EvaluateCrossover(k.EndTime)

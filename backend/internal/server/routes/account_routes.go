@@ -1,4 +1,4 @@
-// File: /internal/server/routes/account_routes.go
+// internal/server/routes/account_routes.go
 
 package routes
 

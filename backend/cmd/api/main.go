@@ -85,7 +85,7 @@ func startHTTPServer(
 		port = "8080"
 	}
 
-	mux := http.NewServeMux()
+	// mux := http.NewServeMux()
 	router := middlewares.CORSMiddleware(
 		routes.NewRouter(
 			otpRepo,
@@ -94,11 +94,11 @@ func startHTTPServer(
 		),
 	)
 
-	mux.Handle("/", router)
+	// mux.Handle("/", router)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
-		Handler: mux,
+		Handler: router,
 	}
 
 	log.Printf("🌐 Servidor HTTP iniciado em http://localhost:%s", port)

@@ -30,19 +30,14 @@ func AuthMiddleware(accountRepo repository.AccountRepository) func(http.Handler)
 				return
 			}
 
-			accountIDStr, err := auth.GetAccountIDFromToken(r)
+			// accountIDStr, err := auth.GetAccountIDFromToken(r)
+			accountID, err := auth.ExtractAccountIDFromHeader(r)
 			if err != nil {
-				utils.SendError(w, http.StatusUnauthorized, "Token inválido ou expirado")
+				utils.SendError(w, http.StatusUnauthorized, "Token inválido ou ausente")
 				return
 			}
 
-			uuidAccountID, err := uuid.Parse(accountIDStr)
-			if err != nil {
-				utils.SendError(w, http.StatusBadRequest, "ID da conta inválido no token")
-				return
-			}
-
-			account, err := accountRepo.GetByID(context.Background(), uuidAccountID)
+			account, err := accountRepo.GetByID(context.Background(), accountID)
 			if err != nil || account == nil {
 				utils.SendError(w, http.StatusUnauthorized, "Conta não encontrada ou inexistente")
 				return

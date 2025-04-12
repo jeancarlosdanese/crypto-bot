@@ -1,4 +1,4 @@
-// File: services/user.ts
+// services/user.ts
 
 import axios from "axios";
 
