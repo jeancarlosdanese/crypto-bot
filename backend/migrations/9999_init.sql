@@ -6,12 +6,12 @@ INSERT INTO "public"."accounts" (
 )
 VALUES (
     '00000000-0000-0000-0000-000000000001',
-    'Jean Carlos Danese',
-    'jean@danese.com.br',
-    '5549999669869',
+    'José da Silva',
+    'email@email.com',
+    '9999999999',
     encode(gen_random_bytes(32), 'hex'), 
-    'HB0TGPBzFePBdm7HH40fuYrz54cRZFLYFqkhT0o5fBfB2gFrdzLndsa2oHioE3k6', 
-    'sYPkAfh2Trw6zbPzHwUfmvvK2f73qq9bpuZimBoSgT1zq3lcIsg6C8NGaj2hzq7x'
+    'SUA_API_KEY', 
+    'SUA_API_SECRET'
 );
 
 -- Substitua 'jean@danese.com.br' pelo e-mail da conta desejada se necessário
