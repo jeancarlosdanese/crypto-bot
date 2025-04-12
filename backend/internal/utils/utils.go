@@ -49,7 +49,7 @@ func SanitizeJSONResponse(rawJSON string) string {
 	return rawJSON
 }
 
-// SendError envia um erro HTTP com o código e mensagem fornecidos.
+// GetUUIDFromRequestPath extrai um UUID de uma variável na URL e retorna o UUID.
 func GetUUIDFromRequestPath(r *http.Request, w http.ResponseWriter, variable string) uuid.UUID {
 	idParam := r.PathValue(variable)
 	id, err := uuid.Parse(idParam)

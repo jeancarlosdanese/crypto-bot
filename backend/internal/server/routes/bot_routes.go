@@ -18,6 +18,8 @@ func RegisterBotRoutes(
 	handler := handlers.NewBotHandle(botRepo)
 
 	mux.Handle("GET /bots", authMiddleware(http.HandlerFunc(handler.ListBotsHandle())))
+	mux.Handle("GET /bots/{id}/candles", authMiddleware(http.HandlerFunc(handler.GetCandlesHandler())))
+
 	// Futuro:
 	// mux.Handle("POST /bots", authMiddleware(http.HandlerFunc(handler.CreateBotHandler())))
 	// mux.Handle("GET /bots/{id}", authMiddleware(http.HandlerFunc(handler.GetBotHandler())))

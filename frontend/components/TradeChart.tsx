@@ -12,6 +12,7 @@ import {
   IChartApi,
   ISeriesApi,
 } from "lightweight-charts";
+import { BotService } from "@/services/botService";
 
 type Decision = {
   time: Time;
@@ -56,6 +57,23 @@ export default function TradeChart({ botID, token }: Props) {
     const candleSeries = chart.addCandlestickSeries();
     chartApiRef.current = chart;
     candleSeriesRef.current = candleSeries;
+
+    const loadHistorical = async () => {
+      try {
+        const historical = await BotService.getHistotical(botID);
+        if (!historical) {
+          console.error("Erro ao carregar dados históricos");
+          return;
+        }
+        console.log("📈 Dados históricos recebidos:", historical);
+
+        candleSeries.setData(historical);
+      } catch (error) {
+        console.error("Erro ao carregar dados históricos", error);
+      }
+    };
+
+    loadHistorical();
 
     // Conectar ao WebSocket
     const socket = new WebSocket(`ws://localhost:8080/ws/${botID}?token=${token}`);

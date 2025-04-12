@@ -54,6 +54,7 @@ func (s *BinanceService) GetHistoricalCandles(symbol string, interval string, li
 			Low:    low,
 			Close:  closeVal,
 			Volume: volume,
+			Time:   k.CloseTime / 1000,
 		})
 	}
 	return candles, nil

@@ -1,4 +1,4 @@
-// cmd/api/main.go
+// cmd/api/bot_runner.go
 
 package main
 
@@ -11,6 +11,7 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
+	"github.com/jeancarlosdanese/crypto-bot/internal/runtime"
 	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
@@ -43,6 +44,11 @@ func startBots(
 
 		go func(botInfo entity.Bot) {
 			strategy := usecases.NewStrategyUseCase(*account, botInfo, exchangeService, decisionRepo, executionRepo, positionRepo, 240)
+
+			// Salvar no mapa global
+			runtime.BotsMap.Lock()
+			runtime.BotsMap.Items[botInfo.ID] = strategy
+			runtime.BotsMap.Unlock()
 
 			if pos, _ := positionRepo.Get(botInfo.ID); pos != nil {
 				strategy.PositionQuantity = 1
