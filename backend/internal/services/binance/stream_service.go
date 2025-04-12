@@ -4,15 +4,16 @@ package binance
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
+	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
 	serverws "github.com/jeancarlosdanese/crypto-bot/internal/server/ws"
 	"github.com/jeancarlosdanese/crypto-bot/internal/services"
+	"github.com/jeancarlosdanese/crypto-bot/internal/utils"
 )
 
 type BinanceStreamService interface {
@@ -37,10 +38,14 @@ func NewBinanceStreamService(strategy *usecases.StrategyUseCase, binanceService 
 }
 
 func (b *binanceStreamService) Start(symbol, interval string) error {
-	symbol = strings.ToLower(symbol)
-	logger.Info("[StreamService] Iniciando monitoramento", "symbol", symbol, "interval", interval)
+	symbol = utils.FormatForBinance(symbol)
+	logger.Info("[StreamService] Iniciando monitoramento",
+		"bot_id", b.strategy.Bot.ID,
+		"par", b.strategy.Bot.Symbol, // Ex: BTC/USDT
+		"interval", interval,
+	)
 
-	candles, err := b.binanceService.GetHistoricalCandles(strings.ToUpper(symbol), interval, b.strategy.WindowSize)
+	candles, err := b.binanceService.GetHistoricalCandles(symbol, interval, b.strategy.WindowSize)
 	if err != nil {
 		logger.Error("[StreamService] Erro ao obter candles históricos", err, "symbol", symbol)
 		return err
@@ -93,15 +98,22 @@ func (b *binanceStreamService) Start(symbol, interval string) error {
 				if k.IsFinal {
 					b.strategy.UpdateCandle(current)
 
-					// 🔥 Publicar candle no WebSocket
+					// 🔹 Calcular médias
+					prices := b.strategy.ClosingPrices()
+					ma9 := indicators.MovingAverage(prices, 9)
+					ma26 := indicators.MovingAverage(prices, 26)
+
+					// 🔥 Publicar candle com médias
 					serverws.Publish(b.strategy.Bot.ID.String(), serverws.Event{
 						Type: "candle",
 						Data: map[string]interface{}{
-							"time":  k.EndTime / 1000, // frontend espera timestamp em segundos
+							"time":  k.EndTime / 1000,
 							"open":  current.Open,
 							"high":  current.High,
 							"low":   current.Low,
 							"close": current.Close,
+							"ma9":   ma9,
+							"ma26":  ma26,
 						},
 					})
 

@@ -60,7 +60,7 @@ func (s *StrategyUseCase) UpdateCandle(candle entity.Candle) {
 }
 
 // closingPrices extrai os preços de fechamento dos candles na janela atual.
-func (s *StrategyUseCase) closingPrices() []float64 {
+func (s *StrategyUseCase) ClosingPrices() []float64 {
 	prices := make([]float64, len(s.CandlesWindow))
 	for i, c := range s.CandlesWindow {
 		prices[i] = c.Close

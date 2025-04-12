@@ -4,6 +4,7 @@ package binance
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/adshao/go-binance/v2"
@@ -73,6 +74,20 @@ func (s *BinanceService) GetAccountPositions() error {
 		println("Ativo:", asset.Asset, "Disponível:", asset.Free, "Em Ordem:", asset.Locked)
 	}
 	return nil
+}
+
+func (s *BinanceService) GetBaseQuote(symbol string) (string, string, error) {
+	info, err := s.client.NewExchangeInfoService().Do(context.Background())
+	if err != nil {
+		return "", "", err
+	}
+
+	for _, s := range info.Symbols {
+		if s.Symbol == symbol {
+			return s.BaseAsset, s.QuoteAsset, nil
+		}
+	}
+	return "", "", fmt.Errorf("símbolo não encontrado")
 }
 
 // PlaceBuyOrder envia uma ordem de compra limitada para o símbolo especificado.

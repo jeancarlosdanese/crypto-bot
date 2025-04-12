@@ -7,11 +7,11 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
-	"github.com/jeancarlosdanese/crypto-bot/internal/report"
+	reporter "github.com/jeancarlosdanese/crypto-bot/internal/report"
 )
 
 func (s *StrategyUseCase) EvaluateEMAFanWithVolume(timestamp int64) string {
-	prices := s.closingPrices()
+	prices := s.ClosingPrices()
 	if len(prices) < 40 || len(s.CandlesWindow) < 11 {
 		return "HOLD"
 	}
@@ -120,10 +120,10 @@ func (s *StrategyUseCase) EvaluateEMAFanWithVolume(timestamp int64) string {
 				Price:     currentPrice,
 				Timestamp: timestamp,
 			},
-			Profit:   profit,
-			ROIPct:   roi,
-			Duration: duration,
-			Strategy: entity.StrategyInfo{Name: name, Version: version},
+			Profit:    profit,
+			ROIPct:    roi,
+			Duration:  duration,
+			Strategy:  entity.StrategyInfo{Name: name, Version: version},
 			CreatedAt: time.Now(),
 		}
 

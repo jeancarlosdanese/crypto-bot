@@ -19,8 +19,8 @@ func RegisterBotRoutes(
 
 	mux.Handle("GET /bots", authMiddleware(http.HandlerFunc(handler.ListBotsHandle())))
 	mux.Handle("GET /bots/{id}/candles", authMiddleware(http.HandlerFunc(handler.GetCandlesHandler())))
+	mux.Handle("GET /bots/{id}", authMiddleware(http.HandlerFunc(handler.GetBotByIDHandle())))
 
 	// Futuro:
 	// mux.Handle("POST /bots", authMiddleware(http.HandlerFunc(handler.CreateBotHandler())))
-	// mux.Handle("GET /bots/{id}", authMiddleware(http.HandlerFunc(handler.GetBotHandler())))
 }

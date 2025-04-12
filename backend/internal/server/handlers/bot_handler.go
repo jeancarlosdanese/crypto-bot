@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/dto"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
@@ -16,6 +17,7 @@ import (
 
 type BotHandle interface {
 	ListBotsHandle() http.HandlerFunc
+	GetBotByIDHandle() http.HandlerFunc
 	GetCandlesHandler() http.HandlerFunc
 }
 
@@ -52,6 +54,34 @@ func (h *botHandle) ListBotsHandle() http.HandlerFunc {
 	}
 }
 
+func (h *botHandle) GetBotByIDHandle() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := utils.GetUUIDFromRequestPath(r, w, "id")
+
+		runtime.BotsMap.RLock()
+		strategy := runtime.BotsMap.Items[id]
+		runtime.BotsMap.RUnlock()
+		if strategy == nil {
+			utils.SendError(w, http.StatusNotFound, "Bot não está ativo")
+			return
+		}
+
+		bot, err := h.repo.GetByID(id)
+		if err != nil {
+			logger.Error("Erro ao buscar bot", err)
+			http.Error(w, "Erro ao buscar bot", http.StatusInternalServerError)
+			return
+		}
+		if bot == nil {
+			utils.SendError(w, http.StatusNotFound, "Bot não encontrado")
+			return
+		}
+
+		result := dto.NewBotResponseDTO(bot)
+		utils.SendJSON(w, http.StatusOK, result)
+	}
+}
+
 func (h *botHandle) GetCandlesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := utils.GetUUIDFromRequestPath(r, w, "id")
@@ -66,17 +96,29 @@ func (h *botHandle) GetCandlesHandler() http.HandlerFunc {
 
 		var result []map[string]interface{}
 		skipped := 0
-		for _, c := range strategy.CandlesWindow {
+		prices := strategy.ClosingPrices()
+		for i, c := range strategy.CandlesWindow {
 			if c.Time == 0 {
 				skipped++
 				continue // ignora candles sem timestamp
 			}
+			ma9 := 0.0
+			ma26 := 0.0
+			if i >= 8 {
+				ma9 = indicators.MovingAverage(prices[:i+1], 9)
+			}
+			if i >= 25 {
+				ma26 = indicators.MovingAverage(prices[:i+1], 26)
+			}
+
 			result = append(result, map[string]interface{}{
 				"time":  c.Time,
 				"open":  c.Open,
 				"high":  c.High,
 				"low":   c.Low,
 				"close": c.Close,
+				"ma9":   ma9,
+				"ma26":  ma26,
 			})
 		}
 		if skipped > 0 {

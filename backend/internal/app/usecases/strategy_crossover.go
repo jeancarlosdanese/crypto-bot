@@ -12,7 +12,7 @@ import (
 )
 
 func (s *StrategyUseCase) EvaluateCrossover(timestamp int64) string {
-	prices := s.closingPrices()
+	prices := s.ClosingPrices()
 	if len(prices) < 26 {
 		return "HOLD"
 	}
@@ -145,8 +145,7 @@ func (s *StrategyUseCase) EvaluateCrossover(timestamp int64) string {
 		priceBelowTrailing := currentPrice < emaTrailing
 		rsiReversal := rsiPrev > rsiExitThreshold && rsi < rsiPrev
 
-		// if stopLossHit || priceBelowTrailing || rsiReversal || basicSignal == "SELL" {
-		if basicSignal == "NO" {
+		if stopLossHit || priceBelowTrailing || rsiReversal || basicSignal == "SELL" {
 			reason := ""
 			switch {
 			case stopLossHit:

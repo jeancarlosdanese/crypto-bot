@@ -19,6 +19,15 @@ export const BotService = {
       return null
     }
   },
+  async getById(botID: string): Promise<Bot | null> {
+    try {
+      const response = await axios.get(`${API_URL}/bots/${botID}`, getAuthHeaders())
+      return response.data
+    } catch (error: any) {
+      console.error("Erro ao buscar bot:", error)
+      return null
+    }
+  },
   async getHistotical(botID: string): Promise<any> {
     try {
       const response = await axios.get(`${API_URL}/bots/${botID}/candles`, getAuthHeaders())

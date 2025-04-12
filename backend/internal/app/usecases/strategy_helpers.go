@@ -7,7 +7,7 @@ import (
 
 // CalibrateLastEntry recalibra o último ponto de entrada com base nos preços de fechamento.
 func (s *StrategyUseCase) CalibrateLastEntry() {
-	prices := s.closingPrices()
+	prices := s.ClosingPrices()
 	var lastSignal string = "HOLD"
 	for i := len(prices) - 1; i > 0; i-- {
 		window := prices[i:]

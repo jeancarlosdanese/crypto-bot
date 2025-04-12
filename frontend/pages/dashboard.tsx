@@ -8,11 +8,25 @@ import Spinner from "@/components/Spinner";
 import Layout from "@/components/Layout";
 import { Bot } from "@/types/bot";
 import { BotCard } from "@/components/BotCard";
+import { BotService } from "@/services/botService";
 
 const Dashboard = () => {
   const { user, loading } = useUser();
   const [bots, setBots] = useState<Bot[]>([]);
   const router = useRouter();
+
+  const loadBots = async () => {
+    const bots = await BotService.getAll();
+    if (bots) {
+      bots.map((bot) => {
+        bot.symbol = bot.symbol.toUpperCase().replace("USDT", "/USDT");
+        return bot;
+      });
+      setBots(bots);
+    } else {
+      console.error("Erro ao carregar bots");
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -23,12 +37,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (loading || !user) return;
 
-    axios
-      .get(`${process.env.NEXT_PUBLIC_API_URL}/bots`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
-      .then((response) => setBots(response.data))
-      .catch((error) => console.error("Erro ao carregar bots", error));
+    loadBots();
   }, [loading, user]);
 
   if (loading) return <Spinner />;
