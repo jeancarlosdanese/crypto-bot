@@ -49,6 +49,5 @@ notificacao.exe
 /build/
 /build/*
 
+# Ignorar init real com dados privados
 backend/migrations/9999_init.sql
-/backend/migrations/9999_init.sql
-./backend/migrations/9999_init.sql
