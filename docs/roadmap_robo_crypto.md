@@ -1,4 +1,4 @@
-# 🧠 Robô de Crypto – Roadmap Atualizado (2025-04-11)
+# 🧠 Robô de Crypto – Roadmap Atualizado (2025-04-12)
 
 Este documento organiza e prioriza os próximos passos para evolução do projeto "Robô de Crypto", com foco em robustez, inteligência, modularidade e experiência do usuário.
 
@@ -42,13 +42,16 @@ Este documento organiza e prioriza os próximos passos para evolução do projet
 ## 🖥️ Fase 3 – App Web (Next.js)
 
 ### 👤 Multiusuário & Painel de Controle
+- [x] Gráficos em tempo real
+- [x] Histórico de candles via REST
+- [x] Tooltips, médias móveis e decisões visuais
+- [x] Dark/Light com detecção dinâmica
 - [ ] Autenticação (JWT ou OAuth)
 - [ ] Painel de bots por conta
 - [ ] Configuração por bot:
   - Par e intervalo
   - Estratégia e parâmetros
   - Autonomia: manual ou automático
-- [ ] Gráficos em tempo real
 - [ ] Histórico de execuções e decisões
 
 ---
@@ -75,16 +78,15 @@ Este documento organiza e prioriza os próximos passos para evolução do projet
 - [ ] Painel de erros/sinais
 
 ### 🧠 IA e Análise
-- [ ] Log detalhado com estratégia usada (nome, parâmetros, ROI)
+- [x] Log detalhado com estratégia usada (nome, parâmetros, ROI)
 - [ ] Benchmark entre estratégias
 - [ ] Módulo de backtesting
 
 ---
 
-## 📌 Prioridades Imediatas (abril/2025)
+## 📌 Prioridades Imediatas (April/2025)
 1. ✅ Finalizar migração para PostgreSQL com bots funcionando
 2. ✅ Executar múltiplos bots com configs separadas
 3. 🔄 Implementar múltiplas estratégias por bot
 4. 🧱 Modularizar criação de bots por estratégia (DI)
 5. 🖥️ Iniciar planejamento do app web em Next.js
-

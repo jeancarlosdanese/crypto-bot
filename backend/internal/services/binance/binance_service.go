@@ -18,8 +18,9 @@ type BinanceService struct {
 	client *binance.Client
 }
 
-// NewBinanceService cria uma nova instância do BinanceService.
-func NewBinanceService(client *binance.Client) *BinanceService {
+// NewBinanceServiceWithKeys cria a instância a partir das chaves da conta.
+func NewBinanceServiceWithKeys(apiKey, apiSecret string) *BinanceService {
+	client := binance.NewClient(apiKey, apiSecret)
 	return &BinanceService{client: client}
 }
 

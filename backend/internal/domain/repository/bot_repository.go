@@ -8,8 +8,8 @@ import (
 )
 
 type BotRepository interface {
-	Create(bot *entity.Bot) (*entity.Bot, error)
-	GetByID(id uuid.UUID) (*entity.Bot, error)
-	GetByAccountID(accountID uuid.UUID) ([]entity.Bot, error)
-	Update(bot *entity.Bot) (*entity.Bot, error)
+	Create(bot *entity.Bot) (*entity.BotWithStrategy, error)
+	GetByID(id uuid.UUID) (*entity.BotWithStrategy, error)
+	GetByAccountID(accountID uuid.UUID) ([]entity.BotWithStrategy, error)
+	Update(bot *entity.Bot) (*entity.BotWithStrategy, error)
 }

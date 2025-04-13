@@ -11,8 +11,10 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
+	"github.com/jeancarlosdanese/crypto-bot/internal/factory"
 	"github.com/jeancarlosdanese/crypto-bot/internal/runtime"
 	"github.com/jeancarlosdanese/crypto-bot/internal/services"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services/binance"
 )
 
 func startBots(
@@ -20,8 +22,6 @@ func startBots(
 	accountRepo repository.AccountRepository,
 	botRepo repository.BotRepository,
 	positionRepo repository.PositionRepository,
-	exchangeService services.ExchangeService,
-	streamFactory func(*usecases.StrategyUseCase) services.StreamService,
 	decisionRepo repository.DecisionLogRepository,
 	executionRepo repository.ExecutionLogRepository,
 ) {
@@ -30,6 +30,15 @@ func startBots(
 	account, err := accountRepo.GetByID(ctx, accountID)
 	if err != nil {
 		log.Fatalf("Erro ao carregar conta: %v", err)
+	}
+
+	// Exchange Service (Binance)
+	exchangeFactory := factory.NewExchangeFactory()
+	binanceExchangeService := exchangeFactory.NewExchangeService("binance", account)
+
+	// 🔁 Start bots em paralelo
+	binanceStreamFactory := func(strategy *usecases.StrategyUseCase) services.StreamService {
+		return binance.NewBinanceStreamService(strategy, binanceExchangeService.(*binance.BinanceService))
 	}
 
 	bots, err := botRepo.GetByAccountID(account.ID)
@@ -42,8 +51,8 @@ func startBots(
 			continue
 		}
 
-		go func(botInfo entity.Bot) {
-			strategy := usecases.NewStrategyUseCase(*account, botInfo, exchangeService, decisionRepo, executionRepo, positionRepo, 240)
+		go func(botInfo entity.BotWithStrategy) {
+			strategy := usecases.NewStrategyUseCase(*account, botInfo, binanceExchangeService, decisionRepo, executionRepo, positionRepo, 240)
 
 			// Salvar no mapa global
 			runtime.BotsMap.Lock()
@@ -57,7 +66,7 @@ func startBots(
 				log.Printf("🔁 [%s] Posição reaberta a %.2f", botInfo.Symbol, pos.EntryPrice)
 			}
 
-			stream := streamFactory(strategy)
+			stream := binanceStreamFactory(strategy)
 			_ = stream.Start(botInfo.Symbol, botInfo.Interval)
 		}(bot)
 	}

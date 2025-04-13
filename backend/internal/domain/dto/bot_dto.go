@@ -13,7 +13,7 @@ type BotResponseDTO struct {
 	Active       bool   `json:"active"`
 }
 
-func NewBotResponseDTO(bot *entity.Bot) BotResponseDTO {
+func NewBotResponseDTO(bot *entity.BotWithStrategy) BotResponseDTO {
 	return BotResponseDTO{
 		ID:           bot.ID.String(),
 		Symbol:       bot.Symbol,

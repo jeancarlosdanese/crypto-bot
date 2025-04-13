@@ -12,9 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	binanceApi "github.com/adshao/go-binance/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jeancarlosdanese/crypto-bot/internal/app/usecases"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/config"
 	"github.com/jeancarlosdanese/crypto-bot/internal/infra/database"
@@ -22,8 +20,6 @@ import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/logger"
 	"github.com/jeancarlosdanese/crypto-bot/internal/server/middlewares"
 	"github.com/jeancarlosdanese/crypto-bot/internal/server/routes"
-	"github.com/jeancarlosdanese/crypto-bot/internal/services"
-	"github.com/jeancarlosdanese/crypto-bot/internal/services/binance"
 )
 
 func main() {
@@ -47,22 +43,11 @@ func main() {
 	decisionRepo := postgres.NewDecisionLogRepository(pool)
 	otpRepo := postgres.NewAccountOTPRepository(pool)
 
-	// Exchange Service (Binance)
-	binanceClient := binanceApi.NewClient(os.Getenv("BINANCE_API_KEY"), os.Getenv("BINANCE_API_SECRET"))
-	exchangeService := binance.NewBinanceService(binanceClient)
-
-	// 🔁 Start bots em paralelo
-	streamFactory := func(strategy *usecases.StrategyUseCase) services.StreamService {
-		return binance.NewBinanceStreamService(strategy, exchangeService)
-	}
-
 	go startBots(
 		context.Background(),
 		accountRepo,
 		botRepo,
 		positionRepo,
-		exchangeService,
-		streamFactory,
 		decisionRepo,
 		executionRepo,
 	)

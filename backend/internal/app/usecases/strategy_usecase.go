@@ -7,13 +7,13 @@ import (
 
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
-	service "github.com/jeancarlosdanese/crypto-bot/internal/services"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
 type StrategyUseCase struct {
 	Account             entity.Account                    // Conta do usuário
-	Bot                 entity.Bot                        // Bot associado à conta
-	Exchange            service.ExchangeService           // Serviço de exchange para obter dados de mercado
+	Bot                 entity.BotWithStrategy            // Bot associado à conta
+	Exchange            services.ExchangeService          // Serviço de exchange para obter dados de mercado
 	DecisionLogRepo     repository.DecisionLogRepository  // Repositório para registrar decisões
 	ExecutionLogRepo    repository.ExecutionLogRepository // Repositório para registrar execuções
 	PositionRepo        repository.PositionRepository     // Repositório para gerenciar posições abertas
@@ -30,8 +30,8 @@ type StrategyUseCase struct {
 // NewStrategyUseCase cria uma nova instância do StrategyUseCase com o tamanho de janela desejado.
 func NewStrategyUseCase(
 	account entity.Account,
-	bot entity.Bot,
-	exchange service.ExchangeService,
+	bot entity.BotWithStrategy,
+	exchange services.ExchangeService,
 	decisionRepo repository.DecisionLogRepository,
 	executionRepo repository.ExecutionLogRepository,
 	positionRepo repository.PositionRepository,

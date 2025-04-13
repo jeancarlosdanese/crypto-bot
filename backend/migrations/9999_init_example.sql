@@ -1,0 +1,63 @@
+-- migrations/9999_init_example.sql
+
+-- ================================
+-- Dados iniciais
+-- ================================
+
+-- Estratégias disponíveis
+INSERT INTO strategies (name, description) VALUES
+('CROSSOVER', 'Cruzamento de Médias Móveis com RSI'),
+('EMA_FAN', 'Alinhamento de múltiplas EMAs com volume'),
+('RSI2', 'Estratégia baseada no RSI2 e reversão técnica');
+
+-- Conta administrativa
+INSERT INTO accounts (
+    id, name, email, whatsapp, api_key, binance_api_key, binance_api_secret
+) VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    'João da Silva',
+    'email@domain.com',
+    '9999999999',
+    encode(gen_random_bytes(32), 'hex'),
+    'SUA_API_KEY',
+    'SUA_API_SECRET'
+);
+
+-- ================================
+-- Inserção de bots de exemplo
+-- ================================
+DO $$
+DECLARE
+    acc_id UUID := (SELECT id FROM accounts WHERE email = 'email@domain.com');
+    crossover_id UUID := (SELECT id FROM strategies WHERE name = 'CROSSOVER');
+    symbol TEXT;
+    bot_id UUID;
+BEGIN
+    FOR symbol IN SELECT unnest(ARRAY['BTC/USDT', 'BNB/USDT', 'XRP/USDT', 'ETH/USDT', 'SOL/USDT', 'FDUSD/USDT'])
+    LOOP
+        INSERT INTO bots (id, account_id, symbol, interval, strategy_id, autonomous, active)
+        VALUES (
+            gen_random_uuid(),
+            acc_id,
+            symbol,
+            '1m',
+            crossover_id,
+            true,
+            true
+        )
+        RETURNING id INTO bot_id;
+
+        INSERT INTO bot_configs (id, bot_id, config_json)
+        VALUES (
+            gen_random_uuid(),
+            bot_id,
+            '{
+                "atr_min": 0.5,
+                "ma_short": 9,
+                "ma_long": 26,
+                "rsi_threshold": 70,
+                "volatility_min": 0.1
+            }'::jsonb
+        );
+    END LOOP;
+END $$;
