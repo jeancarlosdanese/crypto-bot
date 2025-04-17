@@ -6,11 +6,11 @@ dev:
 build:
 	npm run build
 
-install:
-	npm install
-
 clean:
 	rm -rf .next node_modules
+
+install:
+	npm install
 
 lint:
 	npm run lint

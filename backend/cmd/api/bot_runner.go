@@ -52,7 +52,13 @@ func startBots(
 		}
 
 		go func(botInfo entity.BotWithStrategy) {
-			strategy := usecases.NewStrategyUseCase(*account, botInfo, binanceExchangeService, decisionRepo, executionRepo, positionRepo, 240)
+			strategyImpl, err := factory.NewStrategyByName(botInfo.StrategyName)
+			if err != nil {
+				log.Printf("❌ Estratégia desconhecida para bot %s: %v", botInfo.ID, err)
+				return
+			}
+
+			strategy := usecases.NewStrategyUseCase(*account, botInfo, binanceExchangeService, strategyImpl, decisionRepo, executionRepo, positionRepo, 240)
 
 			// Salvar no mapa global
 			runtime.BotsMap.Lock()

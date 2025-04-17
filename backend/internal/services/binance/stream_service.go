@@ -118,7 +118,7 @@ func (b *binanceStreamService) Start(symbol, interval string) error {
 					})
 
 					// timestamp do candle finalizado (já vem como int64 da Binance)
-					decision := b.strategy.EvaluateCrossover(k.EndTime)
+					decision := b.strategy.ExecuteDecision(k.EndTime)
 
 					if decision != "HOLD" {
 						logger.Info("[StreamService] Decisão tomada",

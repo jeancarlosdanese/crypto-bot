@@ -1,0 +1,10 @@
+// internal/domain/strategy/strategy.go
+
+package strategy
+
+import "github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+
+type Strategy interface {
+	Name() string
+	Evaluate(candles []entity.Candle, ctx *entity.StrategyContext) string
+}

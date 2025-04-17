@@ -40,6 +40,10 @@ clean:
 
 check-env:
 	@echo "🔍 Verificando variáveis de ambiente obrigatórias..."
+	@if [ ! -f .env ]; then \
+		echo "❌ Arquivo .env não encontrado na raiz."; \
+		exit 1; \
+	fi
 	@if [ -z "$(POSTGRES_USER)" ] || [ -z "$(POSTGRES_PASSWORD)" ] || [ -z "$(POSTGRES_DATABASE)" ]; then \
 		echo "❌ Variáveis obrigatórias ausentes. Verifique seu .env."; \
 		exit 1; \
@@ -122,8 +126,8 @@ help:
 	@echo "  make logs          - Logs do backend (docker)"
 	@echo ""
 	@echo "🗄️ Migrations:"
-	@echo "  make migrate-reset       - Dropa e recria todo o schema + insere dados
-	@echo "  make migrate-up          - Executa apenas as migrations
-	@echo "  make migrate-create      - Cria novo arquivo de migration
-	@echo "  make migrate-down        - Dropa o schema public
+	@echo "  make migrate-reset       - Dropa e recria todo o schema + insere dados"
+	@echo "  make migrate-up          - Executa apenas as migrations"
+	@echo "  make migrate-create      - Cria novo arquivo de migration"
+	@echo "  make migrate-down        - Dropa o schema public"
 	@echo ""

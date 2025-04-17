@@ -3,7 +3,11 @@
 # 📍 Makefile Unificado (Raiz do Projeto)
 # -------------------------------------
 
-.PHONY: all init start stop dev restart clean tidy test build logs help
+.PHONY: all init start stop dev restart clean tidy test build logs help \
+	backend-up backend-down backend-up-only-db backend-restart backend-logs \
+	backend-build backend-run backend-dev backend-test backend-tidy backend-cover backend-clean \
+	backend-migrate-reset backend-migrate-up backend-migrate-create backend-migrate-down \
+	frontend-dev frontend-build frontend-clean frontend-install
 
 # Diretórios
 BACKEND_DIR := backend
@@ -78,8 +82,6 @@ backend-clean:
 # 🗄️ Migrations
 # ----------------------
 
-.PHONY: migrate-reset migrate-up migrate-down migrate-create
-
 # Reset completo: drop + create schema + run all migrations
 backend-migrate-reset:
 	$(MAKE) -C $(BACKEND_DIR) migrate-reset
@@ -101,16 +103,16 @@ backend-migrate-down:
 # ----------------------
 
 frontend-dev:
-	cd $(FRONTEND_DIR) && npm run dev
+	$(MAKE) -C $(FRONTEND_DIR) dev
 
 frontend-build:
-	cd $(FRONTEND_DIR) && npm run build
+	$(MAKE) -C $(FRONTEND_DIR) build
 
 frontend-clean:
-	cd $(FRONTEND_DIR) && rm -rf .next node_modules
+	$(MAKE) -C $(FRONTEND_DIR) clean
 
 frontend-install:
-	cd $(FRONTEND_DIR) && npm install
+	$(MAKE) -C $(FRONTEND_DIR) install
 
 # ----------------------
 # 🛠️ Extras
@@ -148,10 +150,10 @@ help:
 	@echo "  make backend-logs        - Mostra logs do Docker backend"
 	@echo ""
 	@echo "🗄️ Migrations:"
-	@echo "  make backend-migrate-reset       - Dropa e recria todo o schema + insere dados
-	@echo "  make backend-migrate-up          - Executa apenas as migrations
-	@echo "  make backend-migrate-create      - Cria novo arquivo de migration
-	@echo "  make backend-migrate-down        - Dropa o schema public
+	@echo "  make backend-migrate-reset       - Dropa e recria todo o schema + insere dados"
+	@echo "  make backend-migrate-up          - Executa apenas as migrations"
+	@echo "  make backend-migrate-create      - Cria novo arquivo de migration"
+	@echo "  make backend-migrate-down        - Dropa o schema public"
 	@echo ""
 	@echo "🌐 Frontend:"
 	@echo "  make frontend-dev        - Inicia frontend em modo dev"
