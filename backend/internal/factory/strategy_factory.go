@@ -16,6 +16,8 @@ func NewStrategyByName(name string) (strategy.Strategy, error) {
 		return &strategy.CrossoverStrategyAdvanced{}, nil
 	case "EMA_FAN":
 		return &strategy.EMAFanStrategy{}, nil
+	case "RSI2":
+		return &strategy.RSI2Strategy{}, nil
 	default:
 		return nil, fmt.Errorf("estratégia desconhecida: %s", name)
 	}
