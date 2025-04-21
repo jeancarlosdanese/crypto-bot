@@ -32,6 +32,8 @@ Thumbs.db
 
 /tmp
 /tmp/*
+/backend/tmp
+/backend/tmp/*
 
 /configs/config_prod.json
 /configs/config_dev.json
