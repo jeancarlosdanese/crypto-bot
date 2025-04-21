@@ -45,7 +45,7 @@ func PrintExecutionSummary(executionLogRepo repository.ExecutionLogRepository) {
 	}
 
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	fileName := fmt.Sprintf("report_%s.log", timestamp)
+	fileName := fmt.Sprintf("tmp/report_%s.log", timestamp)
 	file, err := os.Create(fileName)
 	if err != nil {
 		logger.Error("Erro ao criar arquivo de log de resumo", err)

@@ -3,7 +3,6 @@
 package strategy
 
 import (
-	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 )
 
@@ -13,17 +12,12 @@ func (s *RSI2Strategy) Name() string {
 	return "RSI2"
 }
 
-func (s *RSI2Strategy) Evaluate(candles []entity.Candle, ctx *entity.StrategyContext) string {
-	if len(candles) < 3 {
+func (s *RSI2Strategy) Evaluate(snapshot *entity.IndicatorSnapshot, ctx *entity.StrategyContext) string {
+	if snapshot == nil {
 		return "HOLD"
 	}
 
-	prices := make([]float64, len(candles))
-	for i, c := range candles {
-		prices[i] = c.Close
-	}
-
-	rsi := indicators.RSI(prices, 2)
+	rsi := snapshot.RSI
 
 	if ctx.PositionQuantity == 0 && rsi < 10 {
 		return "BUY"

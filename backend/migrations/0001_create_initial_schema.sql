@@ -48,20 +48,13 @@ CREATE TABLE bots (
     symbol VARCHAR(20) NOT NULL,
     interval VARCHAR(10) NOT NULL,
     autonomous BOOLEAN DEFAULT false,
+    config_json JSONB DEFAULT '{}'::jsonb,
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );
 CREATE INDEX bots_account_id_idx ON bots (account_id);
 CREATE INDEX bots_strategy_id_idx ON bots (strategy_id);
-
-CREATE TABLE bot_configs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    bot_id UUID NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
-    config_json JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now()
-);
 
 CREATE TABLE positions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

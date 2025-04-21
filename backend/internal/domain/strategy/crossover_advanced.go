@@ -3,7 +3,6 @@
 package strategy
 
 import (
-	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 )
 
@@ -13,36 +12,30 @@ func (s *CrossoverStrategyAdvanced) Name() string {
 	return "CROSSOVER_ADVANCED"
 }
 
-func (s *CrossoverStrategyAdvanced) Evaluate(candles []entity.Candle, ctx *entity.StrategyContext) string {
-	if len(candles) < 26 {
+func (s *CrossoverStrategyAdvanced) Evaluate(snapshot *entity.IndicatorSnapshot, ctx *entity.StrategyContext) string {
+	if snapshot == nil {
 		return "HOLD"
 	}
 
-	prices := make([]float64, len(candles))
-	for i, c := range candles {
-		prices[i] = c.Close
-	}
-
-	ma9 := indicators.MovingAverage(prices, 9)
-	ma26 := indicators.MovingAverage(prices, 26)
-	rsi := indicators.RSI(prices, 14)
-	currentPrice := prices[len(prices)-1]
+	ema9 := snapshot.EMAs[9]
+	ema26 := snapshot.EMAs[26]
+	currentPrice := snapshot.Price
+	rsi := snapshot.RSI
+	atr := snapshot.ATR
+	emaTrailing := snapshot.EMAs[5] // ou use o menor EMA com fallback
 
 	if ctx.PositionQuantity == 0 {
-		if ma9 > ma26 && currentPrice > ma9 && rsi < 70 {
+		if ema9 > ema26 && currentPrice > ema9 && rsi < 70 {
 			return "BUY"
 		}
 	} else {
-		emaTrailing := indicators.MovingAverage(prices, 5)
-		rsiPrev := indicators.RSI(prices[:len(prices)-1], 14)
-		atr := indicators.ATRFromCandles(candles)
 		stopLossThreshold := ctx.LastEntryPrice + atr*1.5
+		rsiReversal := rsi > 80 && rsi < ctx.LastEntryPrice // simplificação
 
 		stopLossHit := currentPrice < stopLossThreshold
 		priceBelowTrailing := currentPrice < emaTrailing
-		rsiReversal := rsiPrev > 80 && rsi < rsiPrev
 
-		if stopLossHit || priceBelowTrailing || rsiReversal || (ma9 < ma26 && currentPrice < ma9) {
+		if stopLossHit || priceBelowTrailing || rsiReversal || (ema9 < ema26 && currentPrice < ema9) {
 			return "SELL"
 		}
 	}

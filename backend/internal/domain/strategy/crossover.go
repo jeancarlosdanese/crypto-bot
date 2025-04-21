@@ -3,7 +3,6 @@
 package strategy
 
 import (
-	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 )
 
@@ -13,26 +12,22 @@ func (s *CrossoverStrategy) Name() string {
 	return "CROSSOVER"
 }
 
-func (s *CrossoverStrategy) Evaluate(candles []entity.Candle, ctx *entity.StrategyContext) string {
-	if len(candles) < 26 {
+func (s *CrossoverStrategy) Evaluate(snapshot *entity.IndicatorSnapshot, ctx *entity.StrategyContext) string {
+	if snapshot == nil {
 		return "HOLD"
 	}
 
-	prices := make([]float64, len(candles))
-	for i, c := range candles {
-		prices[i] = c.Close
-	}
-
-	ma9 := indicators.MovingAverage(prices, 9)
-	ma26 := indicators.MovingAverage(prices, 26)
-	currentPrice := prices[len(prices)-1]
+	ema9 := snapshot.EMAs[9]
+	ema26 := snapshot.EMAs[26]
+	price := snapshot.Price
+	rsi := snapshot.RSI
 
 	if ctx.PositionQuantity == 0 {
-		if ma9 > ma26 && currentPrice > ma9 {
+		if ema9 > ema26 && price > ema9 && rsi < 70 {
 			return "BUY"
 		}
 	} else {
-		if ma9 < ma26 && currentPrice < ma9 {
+		if ema9 < ema26 && price < ema9 {
 			return "SELL"
 		}
 	}

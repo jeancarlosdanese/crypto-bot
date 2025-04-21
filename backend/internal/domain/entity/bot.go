@@ -1,3 +1,5 @@
+// internal/domain/entity/bot.go
+
 package entity
 
 import (
@@ -14,6 +16,7 @@ type Bot struct {
 	Interval   string    `json:"interval"`
 	Autonomous bool      `json:"autonomous"`
 	Active     bool      `json:"active"`
+	ConfigJSON []byte    `json:"config_json"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }

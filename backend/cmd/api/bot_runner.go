@@ -36,6 +36,9 @@ func startBots(
 	exchangeFactory := factory.NewExchangeFactory()
 	binanceExchangeService := exchangeFactory.NewExchangeService("binance", account)
 
+	// Serviço de indicadores
+	indicatorService := services.NewIndicatorService()
+
 	// 🔁 Start bots em paralelo
 	binanceStreamFactory := func(strategy *usecases.StrategyUseCase) services.StreamService {
 		return binance.NewBinanceStreamService(strategy, binanceExchangeService.(*binance.BinanceService))
@@ -58,7 +61,17 @@ func startBots(
 				return
 			}
 
-			strategy := usecases.NewStrategyUseCase(*account, botInfo, binanceExchangeService, strategyImpl, decisionRepo, executionRepo, positionRepo, 240)
+			strategy := usecases.NewStrategyUseCase(
+				*account,
+				botInfo,
+				binanceExchangeService,
+				strategyImpl,
+				decisionRepo,
+				executionRepo,
+				positionRepo,
+				indicatorService, // <-- novo parâmetro
+				240,
+			)
 
 			// Salvar no mapa global
 			runtime.BotsMap.Lock()

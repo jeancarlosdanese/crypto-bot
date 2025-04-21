@@ -153,6 +153,15 @@ func EMASeries(prices []float64, period int) []float64 {
 	return result
 }
 
+// LastEMA retorna o último valor da EMA para os preços fornecidos em um dado período.
+func LastEMA(prices []float64, period int) float64 {
+	series := EMASeries(prices, period)
+	if len(series) == 0 {
+		return 0
+	}
+	return series[len(series)-1]
+}
+
 // MACD calcula o MACD, a linha de sinal e o histograma para uma série de preços.
 // shortPeriod e longPeriod são os períodos para as EMAs de curto e longo prazo, respectivamente,
 // e signalPeriod é o período para calcular a linha de sinal a partir do MACD.
@@ -180,4 +189,68 @@ func MACD(prices []float64, shortPeriod, longPeriod, signalPeriod int) (macdLine
 	}
 
 	return macdLine, signalLine, histogram
+}
+
+// LastMACD retorna o último valor do MACD, da linha de sinal e do histograma
+func LastMACD(prices []float64, short, long, signal int) (float64, float64, float64) {
+	macd, signalLine, hist := MACD(prices, short, long, signal)
+	if len(macd) == 0 {
+		return 0, 0, 0
+	}
+	n := len(macd) - 1
+	return macd[n], signalLine[n], hist[n]
+}
+
+// BollingerBands calcula as bandas de Bollinger para um slice de preços e um período.
+func BollingerBands(prices []float64, period int) (upper, lower float64) {
+	if len(prices) < period {
+		return 0, 0
+	}
+	slice := prices[len(prices)-period:]
+	mean := SMA(slice)
+
+	// Desvio padrão
+	variance := 0.0
+	for _, p := range slice {
+		diff := p - mean
+		variance += diff * diff
+	}
+	stddev := math.Sqrt(variance / float64(period))
+
+	upper = mean + 2*stddev
+	lower = mean - 2*stddev
+	return
+}
+
+func RSIFromSnapshot(candles []entity.Candle, period int, offset int) float64 {
+	if len(candles) < period+1 {
+		return 0
+	}
+
+	prices := make([]float64, len(candles))
+	for i, c := range candles {
+		prices[i] = c.Close
+	}
+
+	end := len(prices) + offset
+	if end < period+1 {
+		return 0
+	}
+
+	slice := prices[end-period-1 : end]
+	return RSI(slice, period)
+}
+
+// AverageVolume calculates the average volume of the given candles.
+func AverageVolume(candles []entity.Candle) float64 {
+	if len(candles) == 0 {
+		return 0
+	}
+
+	var totalVolume float64
+	for _, candle := range candles {
+		totalVolume += candle.Volume
+	}
+
+	return totalVolume / float64(len(candles))
 }

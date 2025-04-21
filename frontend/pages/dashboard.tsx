@@ -18,10 +18,6 @@ const Dashboard = () => {
   const loadBots = async () => {
     const bots = await BotService.getAll();
     if (bots) {
-      bots.map((bot) => {
-        bot.symbol = bot.symbol.toUpperCase().replace("USDT", "/USDT");
-        return bot;
-      });
       setBots(bots);
     } else {
       console.error("Erro ao carregar bots");

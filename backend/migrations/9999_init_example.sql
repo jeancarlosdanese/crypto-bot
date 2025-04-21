@@ -35,7 +35,10 @@ DECLARE
 BEGIN
     FOR symbol IN SELECT unnest(ARRAY['BTC/USDT', 'BNB/USDT', 'XRP/USDT', 'ETH/USDT', 'SOL/USDT', 'FDUSD/USDT'])
     LOOP
-        INSERT INTO bots (id, account_id, symbol, interval, strategy_id, autonomous, active)
+        INSERT INTO bots (
+            id, account_id, symbol, interval,
+            strategy_id, autonomous, active, config_json
+        )
         VALUES (
             gen_random_uuid(),
             acc_id,
@@ -43,21 +46,18 @@ BEGIN
             '1m',
             crossover_id,
             true,
-            true
+            true,
+            '{
+                "ema_periods": [9, 26],
+                "macd": { "short": 12, "long": 26, "signal": 9 },
+                "rsi_period": 14,
+                "rsi_buy": 10,
+                "rsi_sell": 90,
+                "bollinger": { "period": 20 },
+                "atr_period": 14,
+                "volatility_window": 14
+            }'::jsonb
         )
         RETURNING id INTO bot_id;
-
-        INSERT INTO bot_configs (id, bot_id, config_json)
-        VALUES (
-            gen_random_uuid(),
-            bot_id,
-            '{
-                "atr_min": 0.5,
-                "ma_short": 9,
-                "ma_long": 26,
-                "rsi_threshold": 70,
-                "volatility_min": 0.1
-            }'::jsonb
-        );
     END LOOP;
 END $$;
