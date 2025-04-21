@@ -4,7 +4,6 @@ package services
 
 import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
-	"github.com/jeancarlosdanese/crypto-bot/internal/domain/config"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 )
 
@@ -16,7 +15,12 @@ func NewIndicatorService() *IndicatorService {
 
 func (s *IndicatorService) GenerateSnapshot(
 	candles []entity.Candle,
-	cfg *config.BotIndicatorConfig,
+	emaPeriods []int,
+	macdShort, macdLong, macdSignal int,
+	rsiPeriod int,
+	atrPeriod int,
+	volatilityWindow int,
+	bollingerPeriod int,
 ) *entity.IndicatorSnapshot {
 	if len(candles) < 2 {
 		return nil
@@ -29,46 +33,34 @@ func (s *IndicatorService) GenerateSnapshot(
 		volumes[i] = c.Volume
 	}
 
-	// ✅ EMAs dinâmicas
 	emaMap := make(map[int]float64)
-	for _, period := range cfg.EMAPeriods {
+	for _, period := range emaPeriods {
 		emaMap[period] = indicators.LastEMA(prices, period)
 	}
 
-	// ✅ MACD (últimos valores)
-	macd, signal, _ := indicators.MACD(prices, cfg.MACD.Short, cfg.MACD.Long, cfg.MACD.Signal)
-	var macdVal, macdSignal float64
+	macd, signal, _ := indicators.MACD(prices, macdShort, macdLong, macdSignal)
+	var macdVal, macdSignalVal float64
 	if len(macd) > 0 {
 		macdVal = macd[len(macd)-1]
 	}
 	if len(signal) > 0 {
-		macdSignal = signal[len(signal)-1]
+		macdSignalVal = signal[len(signal)-1]
 	}
 
-	// ✅ RSI
-	rsi := indicators.RSI(prices, cfg.RSIPeriod)
-
-	// ✅ ATR
-	atr := indicators.ATRFromCandles(candles[len(candles)-cfg.ATRPeriod:])
-
-	// ✅ Volatilidade
-	volatility := indicators.Volatility(prices[len(prices)-cfg.VolatilityWindow:])
-
-	// ✅ Bollinger Bands
-	bbUpper, bbLower := indicators.BollingerBands(prices, cfg.Bollinger.Period)
+	rsi := indicators.RSI(prices, rsiPeriod)
+	atr := indicators.ATRFromCandles(candles[len(candles)-atrPeriod:])
+	volatility := indicators.Volatility(prices[len(prices)-volatilityWindow:])
+	bbUpper, bbLower := indicators.BollingerBands(prices, bollingerPeriod)
 	bbWidth := bbUpper - bbLower
+	avgVolume := indicators.AverageVolume(candles[len(candles)-11:])
 
-	// ✅ Meta: Preço atual em relação à média de volume dos últimos 10 candles
-	avgVolume := indicators.AverageVolume(candles[len(candles)-11:]) // últimos 10 candles
-
-	// ✅ Snapshot final
 	return &entity.IndicatorSnapshot{
 		Timestamp:  candles[len(candles)-1].Time,
 		Price:      prices[len(prices)-1],
 		Volume:     volumes[len(volumes)-1],
 		EMAs:       emaMap,
 		MACD:       macdVal,
-		MACDSignal: macdSignal,
+		MACDSignal: macdSignalVal,
 		RSI:        rsi,
 		ATR:        atr,
 		Volatility: volatility,

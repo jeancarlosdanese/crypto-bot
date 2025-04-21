@@ -4,6 +4,7 @@ package strategy
 
 import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
 type CrossoverStrategyAdvanced struct{}
@@ -41,4 +42,21 @@ func (s *CrossoverStrategyAdvanced) Evaluate(snapshot *entity.IndicatorSnapshot,
 	}
 
 	return "HOLD"
+}
+
+func (s *CrossoverStrategyAdvanced) EvaluateSnapshot(
+	candles []entity.Candle,
+	ctx *entity.StrategyContext,
+	is *services.IndicatorService,
+) string {
+	snapshot := is.GenerateSnapshot(
+		candles,
+		[]int{9, 26},
+		12, 26, 9,
+		14,
+		14,
+		14,
+		20,
+	)
+	return s.Evaluate(snapshot, ctx)
 }

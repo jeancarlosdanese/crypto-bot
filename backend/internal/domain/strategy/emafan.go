@@ -4,6 +4,7 @@ package strategy
 
 import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
 type EMAFanStrategy struct{}
@@ -46,4 +47,21 @@ func (s *EMAFanStrategy) Evaluate(snapshot *entity.IndicatorSnapshot, ctx *entit
 	}
 
 	return "HOLD"
+}
+
+func (s *EMAFanStrategy) EvaluateSnapshot(
+	candles []entity.Candle,
+	ctx *entity.StrategyContext,
+	is *services.IndicatorService,
+) string {
+	snapshot := is.GenerateSnapshot(
+		candles,
+		[]int{10, 15, 20, 25, 30, 35, 40},
+		0, 0, 0, // MACD não usado
+		14,
+		14,
+		14,
+		20,
+	)
+	return s.Evaluate(snapshot, ctx)
 }

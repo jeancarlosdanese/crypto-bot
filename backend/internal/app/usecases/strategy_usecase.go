@@ -3,11 +3,8 @@
 package usecases
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
-	"github.com/jeancarlosdanese/crypto-bot/internal/domain/config"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/repository"
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/strategy"
@@ -66,25 +63,7 @@ func NewStrategyUseCase(
 
 // ExecuteDecision avalia os indicadores já calculados e toma uma decisão (BUY, SELL ou HOLD).
 func (s *StrategyUseCase) ExecuteDecision(timestamp int64) string {
-	// Carrega configurações personalizadas do bot
-	cfg, err := config.UnmarshalBotIndicatorConfig(s.Bot.ConfigJSON)
-	if err != nil {
-		logger.Error("❌ Erro ao carregar config_json", err)
-		return "HOLD"
-	}
-
-	// Gera snapshot de indicadores técnicos com base nos candles e configurações
-	snapshot := s.IndicatorService.GenerateSnapshot(s.CandlesWindow, cfg)
-	if snapshot == nil {
-		return "HOLD"
-	}
-
-	currentPrice := snapshot.Price
-	rsi := snapshot.RSI
-	atr := snapshot.ATR
-	volatility := snapshot.Volatility
-
-	// Contexto para a strategy
+	// Contexto da estratégia (posição atual, preços, etc.)
 	strategyCtx := &entity.StrategyContext{
 		Account:          s.Account,
 		Bot:              s.Bot.Bot,
@@ -93,35 +72,28 @@ func (s *StrategyUseCase) ExecuteDecision(timestamp int64) string {
 		LastEntryTime:    s.LastEntryTimestamp,
 	}
 
-	// Estratégia toma a decisão com base no snapshot e contexto
-	decision := s.Strategy.Evaluate(snapshot, strategyCtx)
-
+	// A estratégia avalia e decide com base no snapshot gerado por ela
+	decision := s.Strategy.EvaluateSnapshot(s.CandlesWindow, strategyCtx, s.IndicatorService)
 	strategyName := s.Strategy.Name()
 	strategyVersion := "1.0.1"
 
-	// Filtros e execução
+	if decision == "HOLD" {
+		return "HOLD"
+	}
+
+	price := s.CandlesWindow[len(s.CandlesWindow)-1].Close
+
 	switch decision {
 	case "BUY":
-		// Filtros técnicos mínimos
-		if volatility < 0.1 {
-			logger.Debug("🚫 Entrada bloqueada por baixa volatilidade", "volatility", volatility)
-			return "HOLD"
-		}
-		if atr < 0.01 {
-			logger.Debug("🚫 Entrada bloqueada por ATR insuficiente", "atr", atr)
-			return "HOLD"
-		}
-
-		// Execução da entrada
 		s.PositionQuantity = 1
-		s.LastEntryPrice = currentPrice
+		s.LastEntryPrice = price
 		s.LastEntryTimestamp = timestamp
 		s.LastDecision = "BUY"
 
 		if s.PositionRepo != nil {
 			_ = s.PositionRepo.Save(entity.OpenPosition{
 				BotID:      s.Bot.ID,
-				EntryPrice: currentPrice,
+				EntryPrice: price,
 				Timestamp:  timestamp,
 			})
 		}
@@ -132,29 +104,15 @@ func (s *StrategyUseCase) ExecuteDecision(timestamp int64) string {
 			Type: "decision",
 			Data: map[string]interface{}{
 				"time":     timestamp / 1000,
-				"price":    currentPrice,
+				"price":    price,
 				"decision": "BUY",
 			},
 		})
 
-		logger.Info("📈 Entrada executada", "symbol", s.Bot.Symbol, "price", currentPrice)
+		logger.Info("📈 Entrada executada", "symbol", s.Bot.Symbol, "price", price)
 		return "BUY"
 
 	case "SELL":
-		emaTrailing := snapshot.EMAs[cfg.GetTrailingEMA()]
-		rsiPrev := indicators.RSIFromSnapshot(s.CandlesWindow, cfg.RSIPeriod, -1) // opcional: RSI anterior
-		atrMultiplier := 1.5
-		stopLossThreshold := s.LastEntryPrice + atr*atrMultiplier
-
-		reason := "Desconhecido"
-		if currentPrice < stopLossThreshold {
-			reason = fmt.Sprintf("ATR stop hit (%.2f < %.2f)", currentPrice, stopLossThreshold)
-		} else if currentPrice < emaTrailing {
-			reason = fmt.Sprintf("Price < EMA (%d)", cfg.GetTrailingEMA())
-		} else if rsiPrev > cfg.RSISell && rsi < rsiPrev {
-			reason = fmt.Sprintf("RSI reversal (%.2f < %.2f)", rsi, rsiPrev)
-		}
-
 		s.PositionQuantity = 0
 		s.LastDecision = "SELL"
 
@@ -162,7 +120,7 @@ func (s *StrategyUseCase) ExecuteDecision(timestamp int64) string {
 			_ = s.PositionRepo.Delete(s.Bot.ID)
 		}
 
-		profit := currentPrice - s.LastEntryPrice
+		profit := price - s.LastEntryPrice
 		roi := (profit / s.LastEntryPrice) * 100
 		duration := (timestamp - s.LastEntryTimestamp) / 1000
 
@@ -174,7 +132,7 @@ func (s *StrategyUseCase) ExecuteDecision(timestamp int64) string {
 				Symbol:    s.Bot.Symbol,
 				Interval:  s.Bot.Interval,
 				Entry:     entity.TradePoint{Price: s.LastEntryPrice, Timestamp: s.LastEntryTimestamp},
-				Exit:      entity.TradePoint{Price: currentPrice, Timestamp: timestamp},
+				Exit:      entity.TradePoint{Price: price, Timestamp: timestamp},
 				Profit:    profit,
 				ROIPct:    roi,
 				Duration:  duration,
@@ -187,12 +145,12 @@ func (s *StrategyUseCase) ExecuteDecision(timestamp int64) string {
 			Type: "decision",
 			Data: map[string]interface{}{
 				"time":     timestamp / 1000,
-				"price":    currentPrice,
+				"price":    price,
 				"decision": "SELL",
 			},
 		})
 
-		logger.Info("📉 Saída executada", "symbol", s.Bot.Symbol, "price", currentPrice, "reason", reason)
+		logger.Info("📉 Saída executada", "symbol", s.Bot.Symbol, "price", price, "roi", roi)
 		go reporter.PrintExecutionSummary(s.ExecutionLogRepo)
 		return "SELL"
 	}

@@ -46,17 +46,7 @@ BEGIN
             '1m',
             crossover_id,
             true,
-            true,
-            '{
-                "ema_periods": [9, 26],
-                "macd": { "short": 12, "long": 26, "signal": 9 },
-                "rsi_period": 14,
-                "rsi_buy": 10,
-                "rsi_sell": 90,
-                "bollinger": { "period": 20 },
-                "atr_period": 14,
-                "volatility_window": 14
-            }'::jsonb
+            true
         )
         RETURNING id INTO bot_id;
     END LOOP;

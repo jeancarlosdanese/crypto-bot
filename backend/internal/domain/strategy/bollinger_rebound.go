@@ -4,6 +4,7 @@ package strategy
 
 import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
 type BollingerReboundStrategy struct{}
@@ -36,4 +37,21 @@ func (s *BollingerReboundStrategy) Evaluate(snapshot *entity.IndicatorSnapshot, 
 	}
 
 	return "HOLD"
+}
+
+func (s *BollingerReboundStrategy) EvaluateSnapshot(
+	candles []entity.Candle,
+	ctx *entity.StrategyContext,
+	is *services.IndicatorService,
+) string {
+	snapshot := is.GenerateSnapshot(
+		candles,
+		[]int{},
+		0, 0, 0,
+		2,
+		2,
+		2,
+		20, // Bollinger Period
+	)
+	return s.Evaluate(snapshot, ctx)
 }

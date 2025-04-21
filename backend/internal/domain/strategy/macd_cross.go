@@ -4,6 +4,7 @@ package strategy
 
 import (
 	"github.com/jeancarlosdanese/crypto-bot/internal/domain/entity"
+	"github.com/jeancarlosdanese/crypto-bot/internal/services"
 )
 
 type MACDCrossStrategy struct{}
@@ -39,4 +40,21 @@ func (s *MACDCrossStrategy) Evaluate(snapshot *entity.IndicatorSnapshot, ctx *en
 	}
 
 	return "HOLD"
+}
+
+func (s *MACDCrossStrategy) EvaluateSnapshot(
+	candles []entity.Candle,
+	ctx *entity.StrategyContext,
+	is *services.IndicatorService,
+) string {
+	snapshot := is.GenerateSnapshot(
+		candles,
+		[]int{},
+		9, 14, 7, // MACD config rápida
+		2,
+		2,
+		2,
+		20,
+	)
+	return s.Evaluate(snapshot, ctx)
 }
