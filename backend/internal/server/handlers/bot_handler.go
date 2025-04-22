@@ -146,6 +146,17 @@ func (h *botHandle) GetCandlesHandler() http.HandlerFunc {
 				candleMap["macd_histogram"] = hist[len(hist)-1]
 			}
 
+			// Volume + Média de volume dos últimos 10 candles
+			candleMap["volume"] = c.Volume
+
+			if i >= 10 {
+				candleMap["avg_volume"] = indicators.AverageVolume(strategy.CandlesWindow[i-10 : i])
+			}
+
+			upper, lower := indicators.BollingerBands(prices[:i+1], 20)
+			candleMap["bb_upper"] = upper
+			candleMap["bb_lower"] = lower
+
 			result = append(result, candleMap)
 		}
 		if skipped > 0 {
