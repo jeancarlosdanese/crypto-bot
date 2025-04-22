@@ -1,4 +1,4 @@
-// components/TradeChart.tsx
+// components/TradeChartCrossOver.tsx
 
 "use client";
 
@@ -13,7 +13,6 @@ import {
   ISeriesApi,
 } from "lightweight-charts";
 import { BotService } from "@/services/botService";
-import { useTheme } from "next-themes";
 
 type Decision = {
   time: Time;
@@ -26,7 +25,7 @@ type Props = {
   token: string;
 };
 
-export default function TradeChart({ botID, token }: Props) {
+export default function TradeChartCrossOver({ botID, token }: Props) {
   const chartRef = useRef<HTMLDivElement | null>(null);
   const chartApiRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);

@@ -3,11 +3,11 @@
 import { useRouter } from "next/router";
 import { useUser } from "@/context/UserContext";
 import Spinner from "@/components/Spinner";
-import TradeChart from "@/components/TradeChart";
 import Layout from "@/components/Layout";
 import { JSX, useEffect, useState } from "react";
 import { Bot } from "@/types/bot";
 import { BotService } from "@/services/botService";
+import ChartRouter from "@/components/ChartRouter";
 
 const BotChartPage = () => {
   const router = useRouter();
@@ -40,7 +40,7 @@ const BotChartPage = () => {
     <div className="p-4 max-w-7xl mx-auto min-h-[500px]">
       <h1 className="text-2xl font-bold mb-4">{bot.symbol}</h1>
       <div className="w-full h-[500px]">
-        <TradeChart botID={id} token={token} />
+        <ChartRouter bot={bot} token={token} />
       </div>
     </div>
   );
