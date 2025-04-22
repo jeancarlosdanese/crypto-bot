@@ -4,9 +4,9 @@
 
 import { Bot } from "@/types/bot";
 import TradeChartCrossOver from "@/components/TradeChartCrossOver";
-// import TradeChartEMAFan from "@/components/TradeChartEMAFan";
-// import TradeChartRSI from "@/components/TradeChartRSI";
-// import TradeChartMACD from "@/components/TradeChartMACD";
+import TradeChartEMAFan from "./TradeChartEMAFan";
+import TradeChartRSI from "./TradeChartRSI";
+import TradeChartMACD from "./TradeChartMACD";
 
 type Props = {
   bot: Bot;
@@ -19,14 +19,14 @@ export default function ChartRouter({ bot, token }: Props) {
     case "CROSSOVER_ADVANCED":
       return <TradeChartCrossOver botID={bot.id} token={token} />;
 
-    // case "EMA_FAN":
-    //   return <TradeChartEMAFan botID={bot.id} token={token} />;
+    case "EMA_FAN":
+      return <TradeChartEMAFan botID={bot.id} token={token} />;
 
-    // case "RSI2":
-    //   return <TradeChartRSI botID={bot.id} token={token} />;
+    case "RSI2":
+      return <TradeChartRSI botID={bot.id} token={token} />;
 
-    // case "MACD_CROSS":
-    //   return <TradeChartMACD botID={bot.id} token={token} />;
+    case "MACD_CROSS":
+      return <TradeChartMACD botID={bot.id} token={token} />;
 
     default:
       return (

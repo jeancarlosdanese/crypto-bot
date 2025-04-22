@@ -4,6 +4,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/jeancarlosdanese/crypto-bot/internal/app/indicators"
@@ -102,24 +103,50 @@ func (h *botHandle) GetCandlesHandler() http.HandlerFunc {
 				skipped++
 				continue // ignora candles sem timestamp
 			}
-			ma9 := 0.0
-			ma26 := 0.0
-			if i >= 8 {
-				ma9 = indicators.MovingAverage(prices[:i+1], 9)
-			}
-			if i >= 25 {
-				ma26 = indicators.MovingAverage(prices[:i+1], 26)
-			}
-
-			result = append(result, map[string]interface{}{
+			candleMap := map[string]interface{}{
 				"time":  c.Time,
 				"open":  c.Open,
 				"high":  c.High,
 				"low":   c.Low,
 				"close": c.Close,
-				"ma9":   ma9,
-				"ma26":  ma26,
-			})
+			}
+
+			// Cálculo das EMAs da estratégia EMA_FAN
+			emaPeriods := []int{10, 15, 20, 25, 30, 35, 40}
+			for _, period := range emaPeriods {
+				if i >= period-1 {
+					candleMap[fmt.Sprintf("ema%d", period)] = indicators.MovingAverage(prices[:i+1], period)
+				}
+			}
+
+			// Cálculo das médias clássicas (se ainda usadas)
+			if i >= 8 {
+				candleMap["ma9"] = indicators.MovingAverage(prices[:i+1], 9)
+			}
+			if i >= 25 {
+				candleMap["ma26"] = indicators.MovingAverage(prices[:i+1], 26)
+			}
+
+			// Cálculo do RSI
+			rsi := 0.0
+			if i >= 2 {
+				rsi = indicators.RSI(prices[:i+1], 2)
+			}
+			candleMap["rsi"] = rsi
+
+			// Cálculo do MACD
+			macd, signal, hist := indicators.MACD(prices[:i+1], 9, 14, 7)
+			if len(macd) > 0 {
+				candleMap["macd"] = macd[len(macd)-1]
+			}
+			if len(signal) > 0 {
+				candleMap["macd_signal"] = signal[len(signal)-1]
+			}
+			if len(hist) > 0 {
+				candleMap["macd_histogram"] = hist[len(hist)-1]
+			}
+
+			result = append(result, candleMap)
 		}
 		if skipped > 0 {
 			logger.Debug("⏩ Ignorados candles sem timestamp", "qtd", skipped)
